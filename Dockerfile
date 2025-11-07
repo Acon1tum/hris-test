@@ -1,6 +1,9 @@
 # Multi-stage build for HRIS Monorepo
 FROM node:18-alpine AS base
 
+# Install OpenSSL (required for Prisma to connect to databases)
+RUN apk add --no-cache openssl openssl-dev
+
 # Enable corepack for pnpm
 RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
 
@@ -43,6 +46,9 @@ RUN ls -la /app/packages/database/ && test -f /app/packages/database/dist/index.
 
 # Production stage
 FROM node:18-alpine AS production
+
+# Install OpenSSL (required for Prisma to connect to databases)
+RUN apk add --no-cache openssl openssl-dev
 
 # Enable corepack for pnpm
 RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
