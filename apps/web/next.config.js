@@ -15,9 +15,9 @@ const nextConfig = {
   // Proxy API requests to backend when running in Docker (same container)
   // In production, this allows API calls to work seamlessly
   async rewrites() {
-    // Only enable rewrites in production Docker environment
+    // Always enable rewrites in production (we're using Docker)
     // In development, use NEXT_PUBLIC_API_URL directly
-    if (process.env.NODE_ENV === 'production' && process.env.DOCKER_ENV === 'true') {
+    if (process.env.NODE_ENV === 'production') {
       return [
         {
           source: '/api/v1/:path*',
