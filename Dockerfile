@@ -25,6 +25,9 @@ RUN pnpm install --frozen-lockfile
 COPY packages ./packages
 COPY apps ./apps
 
+# Create public directory if it doesn't exist (Next.js requirement)
+RUN mkdir -p /app/apps/web/public
+
 # Generate Prisma client
 RUN pnpm --filter @hris/database db:generate
 
@@ -59,6 +62,7 @@ COPY --from=base /app/packages ./packages
 COPY --from=base /app/apps/api/dist ./apps/api/dist
 COPY --from=base /app/apps/api/package.json ./apps/api/package.json
 COPY --from=base /app/apps/web/.next ./apps/web/.next
+# Copy public directory (will be empty if no files exist, but directory will exist)
 COPY --from=base /app/apps/web/public ./apps/web/public
 COPY --from=base /app/apps/web/package.json ./apps/web/package.json
 COPY --from=base /app/apps/web/next.config.js ./apps/web/next.config.js
