@@ -137,7 +137,7 @@ export function DataTable({
                   colSpan={columns.length}
                   className="text-center text-muted-foreground py-8"
                 >
-                  No payroll configurations found. Click "Create New" to add a configuration.
+                  No payroll configurations found. Click &quot;Create New&quot; to add a configuration.
                 </TableCell>
               </TableRow>
             )}

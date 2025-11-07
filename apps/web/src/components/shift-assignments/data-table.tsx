@@ -209,13 +209,26 @@ export function DataTable({
                               <Table>
                                 <TableHeader>
                                   <TableRow>
-                                    {expandedColumns.map((column) => (
-                                      <TableHead key={column.id || (column.accessorKey as string)}>
-                                        {typeof column.header === "string"
-                                          ? column.header
-                                          : flexRender(column.header, {})}
-                                      </TableHead>
-                                    ))}
+                                    {expandedColumns.map((column, index) => {
+                                      const headerKey = column.id || ('accessorKey' in column ? (column.accessorKey as string) : `col-${index}`);
+                                      let headerContent: React.ReactNode;
+                                      
+                                      if (typeof column.header === "string") {
+                                        headerContent = column.header;
+                                      } else if (typeof column.header === "function") {
+                                        // For function headers, we can't provide full context in expanded view
+                                        // So we'll try to extract a meaningful label or use a fallback
+                                        headerContent = headerKey;
+                                      } else {
+                                        headerContent = headerKey;
+                                      }
+                                      
+                                      return (
+                                        <TableHead key={headerKey}>
+                                          {headerContent}
+                                        </TableHead>
+                                      );
+                                    })}
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -229,17 +242,18 @@ export function DataTable({
                                     return (
                                       <TableRow key={shift.id}>
                                         {expandedColumns.map((column) => {
+                                          const accessorKey = 'accessorKey' in column ? (column.accessorKey as string) : column.id || '';
                                           const cellContext = {
                                             row: expandedRow,
-                                            column: { id: column.id || (column.accessorKey as string) },
-                                            getValue: () => shift[column.accessorKey as keyof ShiftDetail],
+                                            column: { id: column.id || accessorKey },
+                                            getValue: () => accessorKey ? shift[accessorKey as keyof ShiftDetail] : undefined,
                                             table,
                                           }
                                           return (
-                                            <TableCell key={column.id || (column.accessorKey as string)}>
+                                            <TableCell key={column.id || accessorKey}>
                                               {column.cell
                                                 ? flexRender(column.cell, cellContext as any)
-                                                : String(shift[column.accessorKey as keyof ShiftDetail] || "")}
+                                                : accessorKey ? String(shift[accessorKey as keyof ShiftDetail] || "") : ""}
                                             </TableCell>
                                           )
                                         })}

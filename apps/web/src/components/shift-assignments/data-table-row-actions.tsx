@@ -9,7 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, ChevronRight } from "lucide-react"
 import { ShiftAssignment, ShiftDetail } from "./columns"
 
 interface DataTableRowActionsProps {

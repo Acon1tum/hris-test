@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Maximize2, RefreshCw, Filter } from "lucide-react"
+import { ChevronLeft, ChevronRight, Maximize2, RefreshCw, Filter, Search } from "lucide-react"
 import { DataTableToolbar } from "./data-table-toolbar"
 import { Attendance, getColumns } from "./columns"
 

@@ -6,24 +6,7 @@ import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MODULES } from "@hris/constants"
-
-// Sample data - replace with real API data
-const data = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john@example.com",
-    role: "Employee",
-    status: "Active",
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane@example.com",
-    role: "Manager",
-    status: "Active",
-  },
-]
+import data from "@/app/dashboard/data.json"
 
 export default function DashboardPage() {
   // Modules the user requested to show stats for on the dashboard

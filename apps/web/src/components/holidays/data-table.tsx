@@ -138,7 +138,7 @@ export function DataTable({
                   colSpan={columns.length}
                   className="text-center text-muted-foreground py-8"
                 >
-                  No holidays found. Click "Create New" to add a holiday.
+                  No holidays found. Click &quot;Create New&quot; to add a holiday.
                 </TableCell>
               </TableRow>
             )}

@@ -139,7 +139,7 @@ export function DataTable({
                   colSpan={columns.length}
                   className="text-center text-muted-foreground py-8"
                 >
-                  No organizations found. Click "Create New" to add an organization.
+                  No organizations found. Click &quot;Create New&quot; to add an organization.
                 </TableCell>
               </TableRow>
             )}

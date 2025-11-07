@@ -96,7 +96,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
           <Card>
             <CardContent className="py-12 text-center">
               <h1 className="text-2xl font-bold mb-2">Job Not Found</h1>
-              <p className="text-muted-foreground mb-4">The job posting you're looking for doesn't exist.</p>
+              <p className="text-muted-foreground mb-4">The job posting you&apos;re looking for doesn&apos;t exist.</p>
               <Link href="/jobs">
                 <Button>
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -190,7 +190,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
                   <div className="prose prose-sm max-w-none text-muted-foreground">
                     <p>
                       We are seeking a highly motivated and experienced professional to join our team. 
-                      This role offers an excellent opportunity to contribute to our organization's mission 
+                      This role offers an excellent opportunity to contribute to our organization&apos;s mission 
                       and work with a diverse team of professionals.
                     </p>
                     <p className="mt-4">
@@ -205,7 +205,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
                 <div className="pt-4 border-t">
                   <h3 className="text-xl font-semibold mb-4">Requirements</h3>
                   <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                    <li>Bachelor's degree in a related field</li>
+                    <li>Bachelor&apos;s degree in a related field</li>
                     <li>Minimum 3-5 years of relevant experience</li>
                     <li>Strong communication and interpersonal skills</li>
                     <li>Ability to work independently and as part of a team</li>
