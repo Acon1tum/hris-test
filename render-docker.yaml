@@ -1,0 +1,48 @@
+services:
+  # Single Docker service running both API and Frontend
+  - type: web
+    name: hris-app
+    runtime: docker
+    region: oregon
+    # Free tier (no plan specified = free tier)
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DOCKER_ENV
+        value: "true"  # Enable Next.js rewrites for API proxy
+      - key: DATABASE_URL
+        sync: false  # Set this in Render dashboard with your Neon DB connection string
+      - key: JWT_SECRET
+        sync: false  # Set this in Render dashboard (generate a secure random string, min 32 chars)
+      - key: JWT_REFRESH_SECRET
+        sync: false  # Set this in Render dashboard (generate a secure random string, min 32 chars)
+      - key: JWT_EXPIRES_IN
+        value: 2h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: SESSION_TIMEOUT_SECONDS
+        value: 1800
+      - key: RATE_LIMIT_WINDOW_MINUTES
+        value: 15
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: PORT
+        value: 3000  # Frontend port (Render will route traffic here)
+      - key: API_PORT
+        value: 3001  # Backend API port (internal)
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: hris-app
+          property: host
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: hris-app
+          property: host
+        value: https://hris-app.onrender.com/api/v1  # Update with your actual URL after deployment
+      - key: REDIS_URL
+        sync: false  # Optional: Set if using Redis
+

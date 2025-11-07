@@ -18,7 +18,11 @@ This guide will help you deploy your HRIS monorepo to Render using Neon DB.
 
 ## Step 2: Deploy to Render
 
-### Option A: Using render.yaml (Recommended)
+### ⚠️ Important: Blueprint Requires Credit Card
+
+**Render Blueprint requires a credit card**, even for free tier services. If you want to deploy **without a credit card**, use the **manual setup** method below or see `DEPLOY_FREE.md` for detailed free tier instructions.
+
+### Option A: Using render.yaml (Requires Credit Card)
 
 1. **Push your code to GitHub/GitLab** (make sure `render.yaml` is committed)
 
@@ -26,6 +30,7 @@ This guide will help you deploy your HRIS monorepo to Render using Neon DB.
    - Go to Render Dashboard → New → Blueprint
    - Connect your repository
    - Render will automatically detect `render.yaml`
+   - **Note**: You'll be asked for a credit card (even for free tier)
 
 3. **Set Environment Variables** in Render Dashboard:
    
@@ -43,9 +48,13 @@ This guide will help you deploy your HRIS monorepo to Render using Neon DB.
    - Render will automatically deploy both services
    - Wait for build to complete (first build may take 5-10 minutes)
 
-### Option B: Manual Setup (Alternative)
+### Option B: Manual Setup (No Credit Card Required) ⭐
 
-If you prefer to set up services manually:
+**This is the recommended method if you don't want to use a credit card.**
+
+See `DEPLOY_FREE.md` for detailed step-by-step instructions.
+
+Quick steps:
 
 #### Backend API Service
 

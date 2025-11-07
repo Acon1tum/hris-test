@@ -9,17 +9,27 @@
 
 ### 2. Deploy to Render
 
-**Option 1: Using Blueprint (Easiest)**
+**⚠️ Blueprint requires a credit card!** Use manual setup for free deployment.
+
+**Option 1: Docker (No Credit Card) ⭐ BEST - Uses 1 Service**
+- See `DEPLOY_DOCKER.md` for detailed instructions
+- Deploy both API and Frontend in one Docker container
+- Uses only **1 free service** instead of 2
+- No credit card required
+
+**Option 2: Separate Services (No Credit Card)**
+- See `DEPLOY_FREE.md` for detailed instructions
+- Deploy backend and frontend as separate services
+- Uses **2 free services**
+- No credit card required
+
+**Option 2: Using Blueprint (Requires Credit Card)**
 1. Push your code to GitHub/GitLab
 2. Go to Render Dashboard → **New** → **Blueprint**
 3. Connect your repository
 4. Render will auto-detect `render.yaml`
-5. Click **Apply**
-
-**Option 2: Manual Setup**
-1. Go to Render Dashboard → **New** → **Web Service**
-2. Connect your repository
-3. Use the settings from `DEPLOYMENT.md`
+5. **Credit card required** (even for free tier)
+6. Click **Apply**
 
 ### 3. Set Environment Variables
 
