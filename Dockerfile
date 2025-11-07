@@ -67,6 +67,17 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy built files from base stage
 # Copy packages - need to copy both source (for some packages) and dist (for compiled packages)
 COPY --from=base /app/packages ./packages
+
+# Copy Prisma schema to generate client in production
+COPY --from=base /app/packages/database/prisma ./packages/database/prisma
+
+# Generate Prisma client in production stage (needed at runtime)
+# Install prisma CLI temporarily for generation (Prisma generate doesn't need DATABASE_URL)
+RUN cd packages/database && \
+    pnpm add -D prisma@^5.7.0 && \
+    pnpm prisma generate && \
+    pnpm remove prisma && \
+    cd ../..
 # Ensure database package dist is available (it should be built during pnpm build)
 COPY --from=base /app/apps/api/dist ./apps/api/dist
 COPY --from=base /app/apps/api/package.json ./apps/api/package.json
