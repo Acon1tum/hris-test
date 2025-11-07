@@ -5,8 +5,27 @@ class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
+    // In production Docker environment, use relative path to leverage Next.js rewrites
+    // In development, use NEXT_PUBLIC_API_URL or default to localhost
+    const getBaseURL = () => {
+      // Check if we're in production Docker environment
+      if (typeof window !== 'undefined') {
+        // Client-side: use relative path in production (works with Next.js rewrites)
+        // or use NEXT_PUBLIC_API_URL if set
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (apiUrl && !apiUrl.startsWith('/')) {
+          // Full URL provided (e.g., https://example.com/api/v1)
+          return apiUrl;
+        }
+        // Relative path or empty - use relative path (works with rewrites)
+        return apiUrl || '/api/v1';
+      }
+      // Server-side: use environment variable or default
+      return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+    };
+
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1',
+      baseURL: getBaseURL(),
       headers: {
         'Content-Type': 'application/json',
       },
