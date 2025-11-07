@@ -71,13 +71,11 @@ COPY --from=base /app/packages ./packages
 # Copy Prisma schema (needed for generation)
 COPY --from=base /app/packages/database/prisma ./packages/database/prisma
 
-# Generate Prisma client in production stage
-# Install prisma as a regular dependency (not dev) to avoid pnpm conflict
-# Then generate and remove it
-RUN cd packages/database && \
-    pnpm add prisma@^5.7.0 && \
+# Reinstall all dependencies (including dev) to allow Prisma generation
+# Then generate Prisma client, which will remain after we're done
+RUN pnpm install --frozen-lockfile && \
+    cd packages/database && \
     pnpm prisma generate && \
-    pnpm remove prisma && \
     cd ../..
 # Ensure database package dist is available (it should be built during pnpm build)
 COPY --from=base /app/apps/api/dist ./apps/api/dist
