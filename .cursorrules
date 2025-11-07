@@ -1,0 +1,523 @@
+# HRIS Turborepo Project Rules
+
+## Project Structure
+- This is a Turborepo monorepo using PNPM workspaces
+- Frontend: Next.js 14 (App Router) in `apps/web`
+- Backend: Express.js with TypeScript in `apps/api`
+- Database: Prisma ORM in `packages/database`
+- Shared packages in `packages/`
+
+---
+
+## Architecture Overview
+
+### Backend Architecture (Layered)
+```
+Routes → Middleware → Controllers → Services → Repositories → Prisma → Database
+```
+
+### Frontend Architecture (Layered)
+```
+Components → Hooks (React Query) → Services → API Client → Backend API
+```
+
+**CRITICAL**: Always follow the proper layer separation. Each layer should only communicate with adjacent layers.
+
+---
+
+## Backend Development Rules
+
+### 1. Repository Layer (`apps/api/src/repositories/`)
+- **MUST** use repositories for ALL database operations
+- **NEVER** use Prisma directly in services or middleware
+- **ALWAYS** extend `BaseRepository` for new repositories
+- **ALWAYS** export repositories from `repositories/index.ts`
+
+**Example:**
+```typescript
+// ✅ CORRECT
+export class EmployeeRepository extends BaseRepository<Employee> {
+  get model(): typeof prisma.employee {
+    return this.prisma.employee;
+  }
+  
+  async findByDepartment(departmentId: string) {
+    // Custom query logic here
+  }
+}
+```
+
+```typescript
+// ❌ WRONG - Never do this in services
+const user = await prisma.user.findUnique({ where: { id } });
+```
+
+### 2. Service Layer (`apps/api/src/modules/*/*.service.ts`)
+- **MUST** use repositories for data access (never Prisma directly)
+- **SHOULD** contain business logic only
+- **CAN** call other services if needed
+- **MUST** throw `ApiError` for business errors
+
+**Example:**
+```typescript
+// ✅ CORRECT
+export class EmployeesService {
+  async getAll() {
+    return employeeRepository.findMany();
+    // Business logic here
+  }
+}
+```
+
+### 3. Controller Layer (`apps/api/src/modules/*/*.controller.ts`)
+- **MUST** be thin (HTTP handling only)
+- **MUST** validate DTOs before calling services
+- **MUST** use try-catch and call `next(error)` for errors
+- **MUST** use `sendSuccess` for responses
+
+**Example:**
+```typescript
+// ✅ CORRECT
+export class EmployeesController {
+  private service = new EmployeesService();
+  
+  getAll = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.service.getAll();
+      return sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+```
+
+### 4. Routes Layer (`apps/api/src/modules/*/*.routes.ts`)
+- **MUST** apply middleware in correct order:
+  1. `authenticate` - for authentication
+  2. `requireModuleAccess` - for module access
+  3. `requirePermission` - for specific permissions
+- **MUST** register routes in `apps/api/src/routes/index.ts`
+
+**Example:**
+```typescript
+// ✅ CORRECT
+router.use(authenticate);
+router.use(requireModuleAccess('module-name'));
+router.get('/', requirePermission('resource:read'), controller.getAll);
+```
+
+### 5. Middleware (`apps/api/src/middleware/`)
+- **MUST** use services, not repositories directly
+- **MUST** use repositories only if absolutely necessary (rare cases)
+- **SHOULD** be reusable across modules
+
+### 6. DTOs (`apps/api/src/modules/*/dto/`)
+- **MUST** use Zod for validation
+- **MUST** export types using `z.infer<typeof Schema>`
+- **MUST** validate at controller level before service calls
+
+**Example:**
+```typescript
+// ✅ CORRECT
+export const CreateEmployeeDto = z.object({
+  firstName: z.string().min(1),
+  email: z.string().email(),
+});
+
+export type CreateEmployeeDto = z.infer<typeof CreateEmployeeDto>;
+```
+
+### 7. Module Structure
+- **MUST** be self-contained (controller, service, routes, DTOs)
+- **MUST** follow this structure:
+  ```
+  modules/
+  └── [module-name]/
+      ├── [module].controller.ts
+      ├── [module].service.ts
+      ├── [module].routes.ts
+      └── dto/
+          ├── create-[entity].dto.ts
+          └── index.ts
+  ```
+
+---
+
+## Frontend Development Rules
+
+### 1. Service Layer (`apps/web/src/services/`)
+- **MUST** create service classes for API calls
+- **MUST** use `apiClient` for HTTP requests
+- **MUST** handle errors consistently
+- **MUST** be type-safe with interfaces
+
+**Example:**
+```typescript
+// ✅ CORRECT
+class EmployeeService {
+  async getAll(): Promise<Employee[]> {
+    const response = await apiClient.get<Employee[]>('/employees');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch employees');
+    }
+    return response.data;
+  }
+}
+
+export const employeeService = new EmployeeService();
+```
+
+```typescript
+// ❌ WRONG - Never call apiClient directly in components
+const response = await apiClient.get('/employees');
+```
+
+### 2. Hooks Layer (`apps/web/src/hooks/`)
+- **MUST** use React Query for data fetching
+- **MUST** use `useQuery` for GET operations
+- **MUST** use `useMutation` for POST/PUT/DELETE operations
+- **MUST** invalidate queries on mutations
+- **MUST** use consistent query keys: `['resource', id?]`
+
+**Example:**
+```typescript
+// ✅ CORRECT
+export function useEmployees() {
+  return useQuery({
+    queryKey: ['employees'],
+    queryFn: () => employeeService.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateEmployee() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: CreateEmployeeData) => employeeService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+}
+```
+
+### 3. Components (`apps/web/src/components/` & `apps/web/src/app/`)
+- **MUST** use hooks for data fetching (never services directly)
+- **MUST** handle loading and error states
+- **SHOULD** be presentational (UI only)
+- **MUST** use hooks from `hooks/` directory
+
+**Example:**
+```typescript
+// ✅ CORRECT
+export function EmployeesPage() {
+  const { data, isLoading, error } = useEmployees();
+  const { mutate: createEmployee } = useCreateEmployee();
+  
+  if (isLoading) return <Loading />;
+  if (error) return <Error message={error.message} />;
+  
+  return <DataTable data={data} />;
+}
+```
+
+```typescript
+// ❌ WRONG - Never call services directly in components
+const data = await employeeService.getAll();
+```
+
+### 4. Pages (`apps/web/src/app/`)
+- **MUST** be in `(dashboard)/` for protected pages
+- **MUST** be in `(auth)/` for authentication pages
+- **MUST** use hooks for data fetching
+- **SHOULD** be thin wrappers around components
+
+### 5. State Management
+- **MUST** use Zustand for global state (auth, settings)
+- **MUST** use React Query for server state (API data)
+- **SHOULD** minimize local component state
+
+---
+
+## Creating New Features
+
+### Backend: Adding a New Module
+
+**Step-by-step:**
+1. Create repository in `apps/api/src/repositories/[entity].repository.ts`
+2. Export from `repositories/index.ts`
+3. Create DTOs in `modules/[module]/dto/`
+4. Create service in `modules/[module]/[module].service.ts`
+5. Create controller in `modules/[module]/[module].controller.ts`
+6. Create routes in `modules/[module]/[module].routes.ts`
+7. Register routes in `routes/index.ts`
+
+**Always follow this order: Repository → DTO → Service → Controller → Routes**
+
+### Frontend: Adding a New Feature
+
+**Step-by-step:**
+1. Create service in `services/[entity].service.ts`
+2. Create hooks in `hooks/use[Entity].ts`
+3. Create components in `components/[feature]/`
+4. Create page in `app/(dashboard)/[module]/page.tsx`
+
+**Always follow this order: Service → Hooks → Components → Pages**
+
+---
+
+## Code Style
+
+### TypeScript
+- **MUST** use TypeScript for all new code
+- **MUST** avoid `any` type (use proper types)
+- **MUST** use type inference where possible
+- **MUST** export types/interfaces
+
+### Validation
+- **MUST** use Zod for validation (backend DTOs)
+- **MUST** validate at controller level (backend)
+- **MUST** validate forms at component level (frontend)
+
+### Database
+- **MUST** use Prisma through repositories only
+- **NEVER** use Prisma directly in services or controllers
+- **MUST** use Prisma types from `@hris/database`
+
+---
+
+## Naming Conventions
+
+### Files
+- **MUST** use kebab-case for file names: `employee-service.ts`
+- **MUST** use PascalCase for component files: `EmployeeForm.tsx`
+- **MUST** use camelCase for utility files: `apiClient.ts`
+
+### Classes
+- **MUST** use PascalCase: `EmployeeService`, `EmployeeRepository`
+
+### Functions/Variables
+- **MUST** use camelCase: `getAllEmployees`, `employeeData`
+
+### Constants
+- **MUST** use UPPER_SNAKE_CASE: `API_BASE_URL`, `MAX_RETRIES`
+
+### Types/Interfaces
+- **MUST** use PascalCase: `Employee`, `CreateEmployeeDto`
+
+### React Components
+- **MUST** use PascalCase: `EmployeeList`, `EmployeeForm`
+
+### Hooks
+- **MUST** start with `use`: `useEmployees`, `useCreateEmployee`
+
+### Services
+- **MUST** end with `Service`: `EmployeeService`, `AuthService`
+
+### Repositories
+- **MUST** end with `Repository`: `EmployeeRepository`, `UserRepository`
+
+---
+
+## RBAC (Role-Based Access Control)
+
+### Backend
+- **MUST** use `authenticate` middleware for all protected routes
+- **MUST** use `requireModuleAccess` for module-level access
+- **MUST** use `requirePermission` for resource-level permissions
+- **MUST** follow permission format: `resource:action` (e.g., `employee:create`)
+
+**Example:**
+```typescript
+// ✅ CORRECT
+router.use(authenticate);
+router.use(requireModuleAccess('personnel-information-management'));
+router.post('/', requirePermission('employee:create'), controller.create);
+```
+
+### Frontend
+- **MUST** check permissions using `useAuthStore().hasPermission()`
+- **SHOULD** conditionally render UI based on permissions
+- **SHOULD** handle 403 errors gracefully
+
+---
+
+## Error Handling
+
+### Backend
+- **MUST** throw `ApiError` for business errors
+- **MUST** use error middleware for global error handling
+- **MUST** return consistent error format
+
+**Example:**
+```typescript
+// ✅ CORRECT
+if (!employee) {
+  throw new ApiError(404, 'Employee not found');
+}
+```
+
+### Frontend
+- **MUST** handle errors in hooks
+- **MUST** display user-friendly error messages
+- **MUST** handle loading states
+
+**Example:**
+```typescript
+// ✅ CORRECT
+const { data, isLoading, error } = useEmployees();
+
+if (error) {
+  return <Error message={error.message} />;
+}
+```
+
+---
+
+## Testing Guidelines
+
+### Backend
+- **SHOULD** mock repositories when testing services
+- **SHOULD** mock services when testing controllers
+- **SHOULD** test business logic in services
+
+### Frontend
+- **SHOULD** mock services when testing hooks
+- **SHOULD** mock hooks when testing components
+- **SHOULD** test user interactions in components
+
+---
+
+## Performance
+
+### Backend
+- **SHOULD** optimize database queries in repositories
+- **SHOULD** use pagination for list endpoints
+- **SHOULD** implement caching where appropriate
+
+### Frontend
+- **MUST** use React Query for caching
+- **SHOULD** set appropriate `staleTime` for queries
+- **SHOULD** invalidate queries on mutations
+- **SHOULD** use optimistic updates where possible
+
+---
+
+## Security
+
+### Backend
+- **MUST** validate all inputs using DTOs
+- **MUST** use authentication middleware
+- **MUST** check permissions before operations
+- **MUST** sanitize user inputs
+
+### Frontend
+- **MUST** store tokens securely (localStorage for now)
+- **MUST** handle 401 errors (redirect to login)
+- **MUST** validate forms before submission
+- **SHOULD** implement CSRF protection where needed
+
+---
+
+## File Organization
+
+### Backend Structure
+```
+apps/api/src/
+├── modules/
+│   └── [module-name]/
+│       ├── [module].controller.ts
+│       ├── [module].service.ts
+│       ├── [module].routes.ts
+│       └── dto/
+├── repositories/
+│   ├── base.repository.ts
+│   └── [entity].repository.ts
+├── middleware/
+├── routes/
+└── utils/
+```
+
+### Frontend Structure
+```
+apps/web/src/
+├── app/
+│   ├── (auth)/
+│   └── (dashboard)/
+├── components/
+├── hooks/
+├── services/
+├── lib/
+└── stores/
+```
+
+---
+
+## Best Practices
+
+### General
+- **MUST** follow single responsibility principle
+- **MUST** keep functions small and focused
+- **MUST** use meaningful names
+- **MUST** add comments for complex logic
+- **MUST** handle edge cases
+
+### Backend
+- **MUST** use transactions for multi-step operations
+- **MUST** log errors appropriately
+- **SHOULD** use dependency injection where possible
+- **SHOULD** implement rate limiting
+
+### Frontend
+- **MUST** handle loading and error states
+- **SHOULD** use loading skeletons
+- **SHOULD** implement optimistic updates
+- **SHOULD** debounce search inputs
+
+---
+
+## Critical Rules Summary
+
+1. **NEVER** use Prisma directly in services or controllers - use repositories
+2. **NEVER** call `apiClient` directly in components - use services
+3. **NEVER** call services directly in components - use hooks
+4. **ALWAYS** validate DTOs at controller level
+5. **ALWAYS** use React Query for data fetching
+6. **ALWAYS** follow the layer separation
+7. **ALWAYS** use proper error handling
+8. **ALWAYS** check permissions on protected routes
+
+---
+
+## Quick Reference
+
+### Backend Flow
+```
+Request → Routes → Middleware → Controller → Service → Repository → Database
+```
+
+### Frontend Flow
+```
+User Action → Component → Hook → Service → API Client → Backend
+```
+
+### Creating New Module Checklist
+- [ ] Create repository
+- [ ] Create DTOs
+- [ ] Create service
+- [ ] Create controller
+- [ ] Create routes
+- [ ] Register routes
+- [ ] Add permissions
+- [ ] Create frontend service
+- [ ] Create hooks
+- [ ] Create components
+- [ ] Create page
+
+---
+
+For detailed architecture documentation, see:
+- `ARCHITECTURE_ASSESSMENT.md` - Complete architecture guide
+- `IMPLEMENTATION_SUMMARY.md` - Implementation details

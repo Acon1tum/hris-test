@@ -1,0 +1,39 @@
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-04T19:52:39.740Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-04T19:52:39.757Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-04T19:52:39.758Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-04T19:52:55.955Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-04T19:52:55.967Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-04T19:52:55.968Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-04T19:53:59.168Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-04T19:53:59.178Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-04T19:53:59.178Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-04T19:54:16.764Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-04T19:54:16.771Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-04T19:54:16.772Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-04T19:58:33.129Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-04T19:58:33.135Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-04T19:58:33.135Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-06T13:19:24.902Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-06T13:19:24.946Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-06T13:19:24.951Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-06T20:42:51.296Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-06T20:42:51.303Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-06T20:42:51.303Z"}
+{"level":"info","message":"::1 - - [06/Nov/2025:20:43:05 +0000] \"GET / HTTP/1.1\" 404 139 \"-\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36\"","service":"hris-api","timestamp":"2025-11-06T20:43:05.618Z"}
+{"level":"info","message":"::1 - - [06/Nov/2025:20:43:13 +0000] \"GET /auth/login HTTP/1.1\" 404 149 \"-\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36\"","service":"hris-api","timestamp":"2025-11-06T20:43:13.463Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-06T20:47:07.014Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-06T20:47:07.028Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-06T20:47:07.029Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-07T00:42:24.145Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-07T00:42:24.172Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-07T00:42:24.173Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-07T01:06:26.628Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-07T01:06:26.641Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-07T01:06:26.644Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-07T01:06:36.794Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-07T01:06:36.804Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-07T01:06:36.804Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-07T01:07:02.979Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-07T01:07:02.988Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-07T01:07:02.989Z"}
+{"level":"info","message":"::1 - - [07/Nov/2025:01:14:09 +0000] \"POST /api/v1/auth/login HTTP/1.1\" 200 2996 \"http://localhost:3000/\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36\"","service":"hris-api","timestamp":"2025-11-07T01:14:09.867Z"}

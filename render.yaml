@@ -1,0 +1,56 @@
+services:
+  # Backend API Service
+  - type: web
+    name: hris-api
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: corepack enable && corepack prepare pnpm@8.12.0 --activate && pnpm install && pnpm --filter @hris/database db:generate && pnpm --filter @hris/api build
+    startCommand: pnpm --filter @hris/api start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false  # Set this in Render dashboard with your Neon DB connection string
+      - key: JWT_SECRET
+        sync: false  # Set this in Render dashboard (generate a secure random string, min 32 chars)
+      - key: JWT_REFRESH_SECRET
+        sync: false  # Set this in Render dashboard (generate a secure random string, min 32 chars)
+      - key: JWT_EXPIRES_IN
+        value: 2h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: SESSION_TIMEOUT_SECONDS
+        value: 1800
+      - key: RATE_LIMIT_WINDOW_MINUTES
+        value: 15
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: PORT
+        value: 3001
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: hris-web
+          property: host
+      - key: REDIS_URL
+        sync: false  # Optional: Set if using Redis
+
+  # Frontend Next.js Service
+  - type: web
+    name: hris-web
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: corepack enable && corepack prepare pnpm@8.12.0 --activate && pnpm install && pnpm --filter @hris/database db:generate && pnpm --filter @hris/web build
+    startCommand: pnpm --filter @hris/web start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false  # Set this in Render dashboard (needed for Prisma generation)
+      - key: NEXT_PUBLIC_API_URL
+        value: https://hris-api.onrender.com/api/v1  # Update with your actual API URL after deployment
+      - key: PORT
+        value: 3000
+

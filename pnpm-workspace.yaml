@@ -1,0 +1,6 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "standalone-modules/*/apps/*"
+  - "standalone-modules/*/packages/*"
+
