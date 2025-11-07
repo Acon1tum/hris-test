@@ -31,8 +31,15 @@ RUN mkdir -p /app/apps/web/public
 # Generate Prisma client
 RUN pnpm --filter @hris/database db:generate
 
+# Build database package explicitly first
+RUN pnpm --filter @hris/database build
+
 # Build all packages and apps
+# This will build remaining packages and apps
 RUN pnpm build
+
+# Verify database package was built
+RUN ls -la /app/packages/database/ && test -f /app/packages/database/dist/index.js || (echo "Database package dist/index.js not found!" && exit 1)
 
 # Production stage
 FROM node:18-alpine AS production
@@ -58,7 +65,9 @@ COPY apps/web/package.json ./apps/web/
 RUN pnpm install --frozen-lockfile --prod
 
 # Copy built files from base stage
+# Copy packages - need to copy both source (for some packages) and dist (for compiled packages)
 COPY --from=base /app/packages ./packages
+# Ensure database package dist is available (it should be built during pnpm build)
 COPY --from=base /app/apps/api/dist ./apps/api/dist
 COPY --from=base /app/apps/api/package.json ./apps/api/package.json
 COPY --from=base /app/apps/web/.next ./apps/web/.next
