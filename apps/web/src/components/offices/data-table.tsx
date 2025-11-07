@@ -65,7 +65,7 @@ export function DataTable({
       const matchesSearch =
         !search ||
         item.name.toLowerCase().includes(search.toLowerCase()) ||
-        item.location.toLowerCase().includes(search.toLowerCase())
+        (item.location && item.location.toLowerCase().includes(search.toLowerCase()))
       return matchesSearch
     })
   }, [data, search])

@@ -66,7 +66,7 @@ export function DataTable({
         !search ||
         item.name.toLowerCase().includes(search.toLowerCase()) ||
         item.slug.toLowerCase().includes(search.toLowerCase()) ||
-        item.domain.toLowerCase().includes(search.toLowerCase())
+        (item.domain && item.domain.toLowerCase().includes(search.toLowerCase()))
       return matchesSearch
     })
   }, [data, search])

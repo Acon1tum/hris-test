@@ -288,6 +288,10 @@ model Employee {
   manager          Employee?   @relation("ManagerSubordinates", fields: [managerId], references: [id])
   subordinates     Employee[]  @relation("ManagerSubordinates")
   
+  // Office assignment
+  officeId         String?
+  office           Office?     @relation(fields: [officeId], references: [id])
+  
   // ============================================
   // COMPENSATION (Philippine Peso)
   // ============================================
@@ -315,6 +319,7 @@ model Employee {
   @@index([departmentId])
   @@index([designationId])
   @@index([managerId])
+  @@index([officeId])
   @@index([tin])
   @@index([sssNumber])
   @@index([philhealthNumber])
@@ -850,5 +855,94 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([timestamp])
   @@map("audit_logs")
+}
+
+// ============================================
+// ORGANIZATION MANAGEMENT
+// ============================================
+
+model Organization {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  slug              String   @unique
+  currencyCode      String   @default("PHP")
+  dayFormat         String   @default("F d, Y")
+  timeFormat        String   @default("h:i:s A")
+  timeZone          String   @default("Asia/Manila")
+  domain            String?
+  employeeIdLabel   String   @default("Employee ID")
+  avatar            String?  // URL to avatar image
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("organizations")
+}
+
+// ============================================
+// OFFICE MANAGEMENT
+// ============================================
+
+model Office {
+  id          String   @id @default(cuid())
+  name        String
+  branchName  String?
+  description String?
+  
+  // Philippine Address Format
+  addressLine1  String   // Street/Barangay/Building
+  addressLine2  String?  // Subdivision/Village
+  barangay      String?  // Barangay
+  city          String   // City/Municipality
+  province      String   // Province
+  region        String   // Region
+  zipCode       String
+  country       String   @default("Philippines")
+  
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  phoneNumbers OfficePhone[]
+  emailAddresses OfficeEmail[]
+  employees   Employee[] // Employees assigned to this office
+
+  @@index([name])
+  @@index([city])
+  @@index([province])
+  @@index([isActive])
+  @@map("offices")
+}
+
+model OfficePhone {
+  id        String   @id @default(cuid())
+  officeId  String
+  office    Office   @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  countryCode String @default("+63") // Philippine country code
+  number    String   // Phone number without country code
+  type      String?  // e.g., "Main", "Fax", "Mobile"
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([officeId])
+  @@map("office_phones")
+}
+
+model OfficeEmail {
+  id        String   @id @default(cuid())
+  officeId  String
+  office    Office   @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  email     String
+  type      String?  // e.g., "Main", "Support", "Info"
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([officeId])
+  @@index([email])
+  @@map("office_emails")
 }
 

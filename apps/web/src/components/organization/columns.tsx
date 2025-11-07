@@ -9,7 +9,7 @@ export type Organization = {
   slug: string
   currencyCode: string
   timeZone: string
-  domain: string
+  domain: string | null
   employeeIdLabel: string
   createdAt: string
 }

@@ -17,7 +17,7 @@
     "db:push:reset": "turbo run db:push:reset",
     "db:migrate": "turbo run db:migrate",
     "db:seed": "turbo run db:seed",
-    "db:studio": "cd packages/database && dotenv -e ../../.env -- pnpm prisma studio",
+    "db:studio": "pnpm --filter @hris/database db:studio",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
   },

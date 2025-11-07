@@ -11,10 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ArrowLeft, Upload, X, Plus } from "lucide-react"
-import { useState, useRef } from "react"
+import { ArrowLeft, Upload, X, Plus, Loader2 } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
 import { DataTable } from "@/components/organization/data-table"
 import { type Organization } from "@/components/organization/columns"
+import { useOrganizations, useCreateOrganization, useUpdateOrganization, useDeleteOrganization } from "@/hooks/useOrganizations"
+import { toast } from "sonner"
 
 // Sample data for dropdowns
 const currencyCodes = [
@@ -49,49 +51,141 @@ const timeZones = [
   { value: "Australia/Sydney", label: "Australia/Sydney (UTC+10)" },
 ]
 
-// Sample organizations data
-const organizations: Organization[] = [
-  {
-    id: "1",
-    name: "SPREP",
-    slug: "sprep",
-    currencyCode: "Philippine Peso",
-    timeZone: "Asia/Manila",
-    domain: "sprep.org",
-    employeeIdLabel: "SSN",
-    createdAt: "July 24, 2025",
-  },
-]
-
 export function OrganizationSection() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreating, setIsCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   
+  // Hooks
+  const { data: organizations = [], isLoading, error } = useOrganizations()
+  const createMutation = useCreateOrganization()
+  const updateMutation = useUpdateOrganization()
+  const deleteMutation = useDeleteOrganization()
+  
   // Form state
   const [formData, setFormData] = useState({
-    name: "SPREP",
-    slug: "sprep",
+    name: "",
+    slug: "",
     currencyCode: "PHP",
     dayFormat: "F d, Y",
     timeFormat: "h:i:s A",
     timeZone: "Asia/Manila",
     domain: "",
-    employeeIdLabel: "SSN",
+    employeeIdLabel: "Employee ID",
+    avatar: "",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Convert organizations to match the Organization type from columns
+  const organizationData: Organization[] = organizations.map((org) => ({
+    id: org.id,
+    name: org.name,
+    slug: org.slug,
+    currencyCode: org.currencyCode,
+    timeZone: org.timeZone,
+    domain: org.domain || "",
+    employeeIdLabel: org.employeeIdLabel,
+    createdAt: new Date(org.createdAt).toLocaleDateString(),
+  }))
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement form submission
-    console.log("Form data:", formData, "Avatar:", avatarPreview)
-    setIsCreating(false)
+    
+    try {
+      if (editingId) {
+        await updateMutation.mutateAsync({
+          id: editingId,
+          data: {
+            ...formData,
+            domain: formData.domain || null,
+            avatar: avatarPreview || null,
+          },
+        })
+        toast.success("Organization updated successfully")
+      } else {
+        await createMutation.mutateAsync({
+          ...formData,
+          domain: formData.domain || undefined,
+          avatar: avatarPreview || undefined,
+        })
+        toast.success("Organization created successfully")
+      }
+      
+      setIsCreating(false)
+      setEditingId(null)
+      setAvatarPreview(null)
+      resetForm()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save organization")
+    }
   }
 
   const handleEdit = (org: Organization) => {
-    // TODO: Load organization data into form
-    setIsCreating(true)
+    const fullOrg = organizations.find((o) => o.id === org.id)
+    if (fullOrg) {
+      setFormData({
+        name: fullOrg.name,
+        slug: fullOrg.slug,
+        currencyCode: fullOrg.currencyCode,
+        dayFormat: fullOrg.dayFormat,
+        timeFormat: fullOrg.timeFormat,
+        timeZone: fullOrg.timeZone,
+        domain: fullOrg.domain || "",
+        employeeIdLabel: fullOrg.employeeIdLabel,
+        avatar: fullOrg.avatar || "",
+      })
+      setAvatarPreview(fullOrg.avatar || null)
+      setEditingId(fullOrg.id)
+      setIsCreating(true)
+    }
   }
+
+  const handleDelete = async (org: Organization) => {
+    if (!confirm(`Are you sure you want to delete "${org.name}"?`)) {
+      return
+    }
+
+    try {
+      await deleteMutation.mutateAsync(org.id)
+      toast.success("Organization deleted successfully")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete organization")
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      slug: "",
+      currencyCode: "PHP",
+      dayFormat: "F d, Y",
+      timeFormat: "h:i:s A",
+      timeZone: "Asia/Manila",
+      domain: "",
+      employeeIdLabel: "Employee ID",
+      avatar: "",
+    })
+    setAvatarPreview(null)
+    setEditingId(null)
+  }
+
+  const handleCancel = () => {
+    setIsCreating(false)
+    setEditingId(null)
+    resetForm()
+  }
+
+  // Auto-generate slug from name
+  useEffect(() => {
+    if (!editingId && formData.name) {
+      const slug = formData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+      setFormData((prev) => ({ ...prev, slug }))
+    }
+  }, [formData.name, editingId])
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -121,7 +215,7 @@ export function OrganizationSection() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Organization Settings</CardTitle>
+              <CardTitle>{editingId ? 'Edit Organization' : 'Create Organization'}</CardTitle>
               <CardDescription className="mt-1">Dashboard &gt; Organization Settings</CardDescription>
             </div>
           </div>
@@ -347,16 +441,57 @@ export function OrganizationSection() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setIsCreating(false)}
+              onClick={handleCancel}
+              disabled={createMutation.isPending || updateMutation.isPending}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            <Button type="submit">Submit</Button>
+            <Button 
+              type="submit"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              {(createMutation.isPending || updateMutation.isPending) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {editingId ? "Update" : "Create"}
+            </Button>
           </div>
         </form>
       </CardContent>
     </Card>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Organization Settings</CardTitle>
+          <CardDescription>Manage organization configuration and preferences</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Organization Settings</CardTitle>
+          <CardDescription>Manage organization configuration and preferences</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-destructive">
+            Error loading organizations: {error instanceof Error ? error.message : "Unknown error"}
+          </div>
+        </CardContent>
+      </Card>
     )
   }
 
@@ -368,7 +503,7 @@ export function OrganizationSection() {
             <CardTitle>Organization Settings</CardTitle>
             <CardDescription>Manage organization configuration and preferences</CardDescription>
           </div>
-          <Button onClick={() => setIsCreating(true)}>
+          <Button onClick={() => { setIsCreating(true); resetForm(); }}>
             <Plus className="mr-2 h-4 w-4" />
             Create New
           </Button>
@@ -376,20 +511,14 @@ export function OrganizationSection() {
       </CardHeader>
       <CardContent>
         <DataTable
-          data={organizations}
+          data={organizationData}
           search={searchQuery}
           onSearchChange={setSearchQuery}
           onView={(org) => {
-            // TODO: Implement view
-            console.log("View", org)
-          }}
-          onEdit={(org) => {
             handleEdit(org)
           }}
-          onDelete={(org) => {
-            // TODO: Implement delete
-            console.log("Delete", org)
-          }}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
       </CardContent>
     </Card>

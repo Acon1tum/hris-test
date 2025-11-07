@@ -1,0 +1,4 @@
+{"level":"error","message":"API Error: 401 - Invalid credentials","service":"hris-api","timestamp":"2025-11-07T17:49:54.765Z"}
+{"level":"error","message":"API Error: 403 - Missing required permissions: system-administration:read","service":"hris-api","timestamp":"2025-11-07T17:52:23.675Z"}
+{"level":"error","message":"API Error: 403 - Missing required permissions: system-administration:read","service":"hris-api","timestamp":"2025-11-07T17:52:59.515Z"}
+{"level":"error","message":"API Error: 401 - Invalid credentials","service":"hris-api","timestamp":"2025-11-07T18:02:30.806Z"}

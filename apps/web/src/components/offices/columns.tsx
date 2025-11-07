@@ -10,6 +10,19 @@ export type Office = {
   createdAt: string
 }
 
+// Helper function to format location
+export function formatOfficeLocation(office: {
+  city?: string
+  province?: string
+  country?: string
+}): string {
+  const parts: string[] = []
+  if (office.city) parts.push(office.city)
+  if (office.province) parts.push(office.province)
+  if (office.country) parts.push(office.country)
+  return parts.join(', ') || 'N/A'
+}
+
 interface ColumnCallbacks {
   onView?: (office: Office) => void
   onEdit?: (office: Office) => void
