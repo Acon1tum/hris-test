@@ -114,8 +114,11 @@ model User {
   firstName     String
   lastName      String
   middleName    String?
+  suffix        String?   // e.g., "Jr.", "Sr.", "II", "III"
   profileImage  String?
   phoneNumber   String?
+  mobileNumber  String?   // Separate mobile number (Philippine format)
+  landline      String?   // Landline number
   isActive      Boolean   @default(true)
   emailVerified Boolean   @default(false)
   lastLoginAt   DateTime?
@@ -192,45 +195,131 @@ model Employee {
   designationId    String
   designation      Designation @relation(fields: [designationId], references: [id])
   
-  // Personal Information
+  // ============================================
+  // PHILIPPINE GOVERNMENT ID NUMBERS
+  // ============================================
+  tin              String?     @unique // Tax Identification Number (TIN)
+  sssNumber        String?     @unique // Social Security System number
+  philhealthNumber String?     @unique // Philippine Health Insurance Corporation
+  pagibigNumber    String?     @unique // Home Development Mutual Fund (HDMF)
+  gsisNumber       String?     @unique // Government Service Insurance System
+  cscIdNumber      String?     // Civil Service Commission ID
+  licenseNumber    String?     // Professional License Number (e.g., PRC)
+  licenseExpiryDate DateTime?  // License expiration date
+  
+  // ============================================
+  // PERSONAL INFORMATION
+  // ============================================
   dateOfBirth      DateTime?
+  placeOfBirth     String?     // City/Municipality, Province
   gender           Gender?
   maritalStatus    MaritalStatus?
-  nationality      String?
+  nationality      String      @default("Filipino")
+  citizenship      String      @default("Filipino")
+  bloodType        String?     // A+, A-, B+, B-, AB+, AB-, O+, O-
+  height           Decimal?    @db.Decimal(5, 2) // in cm
+  weight           Decimal?    @db.Decimal(5, 2) // in kg
+  religion         String?
+  
+  // ============================================
+  // PHILIPPINE ADDRESS (Complete Format)
+  // ============================================
+  // Permanent Address
+  permanentAddressLine1  String?  // Street/Barangay/Building
+  permanentAddressLine2  String?  // Subdivision/Village
+  permanentBarangay      String?  // Barangay
+  permanentCity          String?  // City/Municipality
+  permanentProvince      String?  // Province
+  permanentRegion        String?  // Region
+  permanentZipCode       String?  // ZIP Code
+  
+  // Present/Residential Address (if different from permanent)
+  presentAddressLine1    String?
+  presentAddressLine2    String?
+  presentBarangay        String?
+  presentCity            String?
+  presentProvince        String?
+  presentRegion          String?
+  presentZipCode         String?
+  
+  // Legacy fields (for backward compatibility)
   address          String?
   city             String?
   state            String?
   zipCode          String?
-  country          String?
+  country          String      @default("Philippines")
   
-  // Employment Information
+  // ============================================
+  // EMERGENCY CONTACT INFORMATION
+  // ============================================
+  emergencyContactName         String?
+  emergencyContactRelationship String?  // e.g., "Spouse", "Parent", "Sibling"
+  emergencyContactNumber       String?
+  emergencyContactAddress      String?
+  
+  // ============================================
+  // FAMILY INFORMATION
+  // ============================================
+  spouseName       String?
+  spouseOccupation String?
+  spouseEmployer   String?
+  spouseContactNumber String?
+  numberOfDependents Int        @default(0)
+  
+  // ============================================
+  // CIVIL SERVICE & ELIGIBILITY
+  // ============================================
+  civilServiceEligibility String?  // e.g., "Career Service Professional", "RA 1080"
+  eligibilityRating       String?  // e.g., "87.50"
+  eligibilityDate         DateTime?
+  eligibilityPlace        String?  // Place where eligibility was obtained
+  
+  // ============================================
+  // EMPLOYMENT INFORMATION
+  // ============================================
   hireDate         DateTime
   employmentType   EmploymentType @default(FULL_TIME)
   employmentStatus EmploymentStatus @default(ACTIVE)
+  separationDate   DateTime?     // Date of separation/termination
+  separationReason String?       // Reason for separation
   
   // Manager relationship
   managerId        String?
   manager          Employee?   @relation("ManagerSubordinates", fields: [managerId], references: [id])
   subordinates     Employee[]  @relation("ManagerSubordinates")
   
-  // Compensation
+  // ============================================
+  // COMPENSATION (Philippine Peso)
+  // ============================================
   baseSalary       Decimal     @db.Decimal(12, 2)
-  currency         String      @default("USD")
+  currency         String      @default("PHP")
+  salaryGrade      Int?        // Salary Grade (SG) for government employees
+  stepIncrement    Int?        @default(1) // Step increment (1-8)
   
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
+  // Relations
   payrolls         Payroll[]
   leaves           Leave[]
   attendances      Attendance[]
   performanceReviews PerformanceReview[]
   healthRecords    HealthRecord[]
   jobApplications  JobApplication[]
+  dependents       Dependent[]
+  educationalBackgrounds EducationalBackground[]
+  previousEmployments PreviousEmployment[]
+  characterReferences CharacterReference[]
 
   @@index([employeeNumber])
   @@index([departmentId])
   @@index([designationId])
   @@index([managerId])
+  @@index([tin])
+  @@index([sssNumber])
+  @@index([philhealthNumber])
+  @@index([gsisNumber])
+  @@index([cscIdNumber])
   @@map("employees")
 }
 
@@ -244,8 +333,10 @@ enum Gender {
 enum MaritalStatus {
   SINGLE
   MARRIED
-  DIVORCED
   WIDOWED
+  LEGALLY_SEPARATED  // Legal separation (Philippine context)
+  ANNULLED           // Annulment (Philippine context)
+  // Note: Divorce is generally not recognized in the Philippines except for Muslims under Sharia law
 }
 
 enum EmploymentType {
@@ -262,6 +353,92 @@ enum EmploymentStatus {
   ON_LEAVE
   TERMINATED
   RESIGNED
+  RETIRED
+  AWOL              // Absent Without Leave
+  SUSPENDED
+}
+
+// ============================================
+// PHILIPPINE GOVERNMENT EMPLOYEE - ADDITIONAL MODELS
+// ============================================
+
+model Dependent {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  firstName   String
+  lastName    String
+  middleName  String?
+  relationship String  // e.g., "Spouse", "Child", "Parent", "Sibling"
+  dateOfBirth DateTime
+  occupation  String?
+  isStudent   Boolean  @default(false)
+  schoolName  String?  // If student
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([employeeId])
+  @@map("dependents")
+}
+
+model EducationalBackground {
+  id              String   @id @default(cuid())
+  employeeId      String
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  level           String   // e.g., "Elementary", "Secondary", "Vocational", "Bachelor's", "Master's", "Doctorate"
+  schoolName      String
+  course          String?  // Course/Degree
+  yearGraduated   Int?
+  honorsAwards    String?  // e.g., "Cum Laude", "Magna Cum Laude", "Summa Cum Laude"
+  unitsEarned     String?  // For incomplete degrees
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([employeeId])
+  @@map("educational_backgrounds")
+}
+
+model PreviousEmployment {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  employerName    String
+  position        String
+  dateStarted     DateTime
+  dateEnded       DateTime?
+  isPresentJob    Boolean  @default(false)
+  reasonForLeaving String?
+  salary          Decimal? @db.Decimal(12, 2)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([employeeId])
+  @@map("previous_employments")
+}
+
+model CharacterReference {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  name        String
+  position    String
+  company     String?
+  contactNumber String?
+  email       String?
+  relationship String? // How they know the employee
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([employeeId])
+  @@map("character_references")
 }
 
 // ============================================
@@ -281,6 +458,13 @@ model Payroll {
   deductions      Decimal       @db.Decimal(12, 2) @default(0)
   tax             Decimal       @db.Decimal(12, 2) @default(0)
   netSalary       Decimal       @db.Decimal(12, 2)
+  
+  // Philippine Government Deductions
+  sssDeduction    Decimal?      @db.Decimal(12, 2) // SSS Contribution
+  philhealthDeduction Decimal?  @db.Decimal(12, 2) // PhilHealth Contribution
+  pagibigDeduction Decimal?     @db.Decimal(12, 2) // Pag-IBIG Contribution
+  gsisDeduction   Decimal?      @db.Decimal(12, 2) // GSIS Contribution (for government employees)
+  withholdingTax  Decimal?      @db.Decimal(12, 2) // Withholding Tax (BIR)
   
   status          PayrollStatus @default(DRAFT)
   
