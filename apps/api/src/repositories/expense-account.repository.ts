@@ -37,3 +37,4 @@ export class ExpenseAccountRepository extends BaseRepository<ExpenseAccount> {
   }
 }
 
+

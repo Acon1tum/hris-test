@@ -9,3 +9,4 @@ export const CreateEmploymentTypeDto = z.object({
 
 export type CreateEmploymentTypeDto = z.infer<typeof CreateEmploymentTypeDto>;
 
+

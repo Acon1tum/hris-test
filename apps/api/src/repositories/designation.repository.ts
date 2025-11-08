@@ -31,3 +31,4 @@ export class DesignationRepository extends BaseRepository<Designation> {
   }
 }
 
+

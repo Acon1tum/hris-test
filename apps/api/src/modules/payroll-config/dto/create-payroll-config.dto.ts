@@ -8,3 +8,4 @@ export const CreatePayrollConfigDto = z.object({
 
 export type CreatePayrollConfigDto = z.infer<typeof CreatePayrollConfigDto>;
 
+

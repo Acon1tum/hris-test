@@ -10,3 +10,4 @@ export const CreateGradeDto = z.object({
 
 export type CreateGradeDto = z.infer<typeof CreateGradeDto>;
 
+

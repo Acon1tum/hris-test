@@ -5,3 +5,4 @@ export const UpdateExpenseAccountDto = CreateExpenseAccountDto.partial();
 
 export type UpdateExpenseAccountDto = z.infer<typeof UpdateExpenseAccountDto>;
 
+

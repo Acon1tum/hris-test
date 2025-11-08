@@ -5,3 +5,4 @@ export const UpdateEmploymentTypeDto = CreateEmploymentTypeDto.partial();
 
 export type UpdateEmploymentTypeDto = z.infer<typeof UpdateEmploymentTypeDto>;
 
+

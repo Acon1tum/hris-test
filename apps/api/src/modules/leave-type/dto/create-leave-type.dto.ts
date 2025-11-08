@@ -30,3 +30,4 @@ export const CreateLeaveTypeDto = z.object({
 
 export type CreateLeaveTypeDto = z.infer<typeof CreateLeaveTypeDto>;
 
+

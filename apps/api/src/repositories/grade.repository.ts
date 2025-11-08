@@ -31,3 +31,4 @@ export class GradeRepository extends BaseRepository<Grade> {
   }
 }
 
+

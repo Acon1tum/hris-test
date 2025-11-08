@@ -12,3 +12,4 @@ export const CreateExpenseAccountDto = z.object({
 
 export type CreateExpenseAccountDto = z.infer<typeof CreateExpenseAccountDto>;
 
+

@@ -12,3 +12,4 @@ export const CreateDepartmentDto = z.object({
 
 export type CreateDepartmentDto = z.infer<typeof CreateDepartmentDto>;
 
+

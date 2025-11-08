@@ -5,3 +5,4 @@ export const UpdatePayrollConfigDto = CreatePayrollConfigDto.partial();
 
 export type UpdatePayrollConfigDto = z.infer<typeof UpdatePayrollConfigDto>;
 
+

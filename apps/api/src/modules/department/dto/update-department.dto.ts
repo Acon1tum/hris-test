@@ -5,3 +5,4 @@ export const UpdateDepartmentDto = CreateDepartmentDto.partial();
 
 export type UpdateDepartmentDto = z.infer<typeof UpdateDepartmentDto>;
 
+

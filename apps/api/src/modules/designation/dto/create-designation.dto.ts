@@ -10,3 +10,4 @@ export const CreateDesignationDto = z.object({
 
 export type CreateDesignationDto = z.infer<typeof CreateDesignationDto>;
 
+

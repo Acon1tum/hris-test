@@ -5,3 +5,4 @@ export const UpdateOvertimePolicyDto = CreateOvertimePolicyDto.partial();
 
 export type UpdateOvertimePolicyDto = z.infer<typeof UpdateOvertimePolicyDto>;
 
+

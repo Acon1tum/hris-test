@@ -5,3 +5,4 @@ export const UpdateLeaveTypeDto = CreateLeaveTypeDto.partial();
 
 export type UpdateLeaveTypeDto = z.infer<typeof UpdateLeaveTypeDto>;
 
+

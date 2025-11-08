@@ -5,3 +5,4 @@ export const UpdateGraceTimeDto = CreateGraceTimeDto.omit({ organizationId: true
 
 export type UpdateGraceTimeDto = z.infer<typeof UpdateGraceTimeDto>;
 
+

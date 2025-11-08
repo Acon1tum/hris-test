@@ -5,3 +5,4 @@ export const UpdateHolidayDto = CreateHolidayDto.partial();
 
 export type UpdateHolidayDto = z.infer<typeof UpdateHolidayDto>;
 
+

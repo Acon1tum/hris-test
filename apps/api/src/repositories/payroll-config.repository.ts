@@ -30,3 +30,4 @@ export class PayrollConfigRepository extends BaseRepository<PayrollConfig> {
   }
 }
 
+

@@ -5,3 +5,4 @@ export const UpdateGradeDto = CreateGradeDto.partial();
 
 export type UpdateGradeDto = z.infer<typeof UpdateGradeDto>;
 
+

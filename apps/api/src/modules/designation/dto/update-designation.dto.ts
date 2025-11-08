@@ -5,3 +5,4 @@ export const UpdateDesignationDto = CreateDesignationDto.partial();
 
 export type UpdateDesignationDto = z.infer<typeof UpdateDesignationDto>;
 
+

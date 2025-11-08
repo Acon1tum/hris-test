@@ -11,3 +11,4 @@ export const CreateHolidayDto = z.object({
 
 export type CreateHolidayDto = z.infer<typeof CreateHolidayDto>;
 
+
