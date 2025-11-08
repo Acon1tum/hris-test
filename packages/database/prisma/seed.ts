@@ -365,6 +365,158 @@ async function main() {
     },
   });
 
+  // Seed Organizations
+  console.log('🏛️ Seeding organizations...');
+  const mainOrganization = await prisma.organization.upsert({
+    where: { name: 'HRIS System' },
+    update: {},
+    create: {
+      name: 'HRIS System',
+      slug: 'hris-system',
+      currencyCode: 'PHP',
+      dayFormat: 'F d, Y',
+      timeFormat: 'h:i:s A',
+      timeZone: 'Asia/Manila',
+      domain: 'hris.local',
+      employeeIdLabel: 'Employee ID',
+      isActive: true,
+    },
+  });
+
+  // Seed Offices
+  console.log('🏢 Seeding offices...');
+  // Check if offices already exist
+  let mainOffice = await prisma.office.findFirst({
+    where: { name: 'Main Office' },
+  });
+
+  if (!mainOffice) {
+    mainOffice = await prisma.office.create({
+      data: {
+        name: 'Main Office',
+        branchName: 'Headquarters',
+        description: 'Main office location in Metro Manila',
+        addressLine1: '123 Rizal Avenue',
+        addressLine2: 'Barangay San Antonio',
+        barangay: 'San Antonio',
+        city: 'Pasig City',
+        province: 'Metro Manila',
+        region: 'National Capital Region (NCR)',
+        zipCode: '1600',
+        country: 'Philippines',
+        isActive: true,
+        phoneNumbers: {
+          create: [
+            {
+              countryCode: '+63',
+              number: '2-1234-5678',
+              type: 'Main',
+              isPrimary: true,
+            },
+            {
+              countryCode: '+63',
+              number: '917-123-4567',
+              type: 'Mobile',
+              isPrimary: false,
+            },
+          ],
+        },
+        emailAddresses: {
+          create: [
+            {
+              email: 'info@hris.local',
+              type: 'Main',
+              isPrimary: true,
+            },
+            {
+              email: 'support@hris.local',
+              type: 'Support',
+              isPrimary: false,
+            },
+          ],
+        },
+      },
+    });
+  } else {
+    // Update existing office
+    mainOffice = await prisma.office.update({
+      where: { id: mainOffice.id },
+      data: {
+        branchName: 'Headquarters',
+        description: 'Main office location in Metro Manila',
+        addressLine1: '123 Rizal Avenue',
+        addressLine2: 'Barangay San Antonio',
+        barangay: 'San Antonio',
+        city: 'Pasig City',
+        province: 'Metro Manila',
+        region: 'National Capital Region (NCR)',
+        zipCode: '1600',
+        country: 'Philippines',
+        isActive: true,
+      },
+    });
+  }
+
+  let branchOffice = await prisma.office.findFirst({
+    where: { name: 'Quezon City Branch' },
+  });
+
+  if (!branchOffice) {
+    branchOffice = await prisma.office.create({
+      data: {
+        name: 'Quezon City Branch',
+        branchName: 'QC Branch',
+        description: 'Quezon City branch office',
+        addressLine1: '456 EDSA',
+        addressLine2: 'Barangay Kamuning',
+        barangay: 'Kamuning',
+        city: 'Quezon City',
+        province: 'Metro Manila',
+        region: 'National Capital Region (NCR)',
+        zipCode: '1103',
+        country: 'Philippines',
+        isActive: true,
+        phoneNumbers: {
+          create: [
+            {
+              countryCode: '+63',
+              number: '2-2345-6789',
+              type: 'Main',
+              isPrimary: true,
+            },
+          ],
+        },
+        emailAddresses: {
+          create: [
+            {
+              email: 'qc@hris.local',
+              type: 'Main',
+              isPrimary: true,
+            },
+          ],
+        },
+      },
+    });
+  } else {
+    // Update existing office
+    branchOffice = await prisma.office.update({
+      where: { id: branchOffice.id },
+      data: {
+        branchName: 'QC Branch',
+        description: 'Quezon City branch office',
+        addressLine1: '456 EDSA',
+        addressLine2: 'Barangay Kamuning',
+        barangay: 'Kamuning',
+        city: 'Quezon City',
+        province: 'Metro Manila',
+        region: 'National Capital Region (NCR)',
+        zipCode: '1103',
+        country: 'Philippines',
+        isActive: true,
+      },
+    });
+  }
+
   // Seed Departments
   console.log('🏢 Seeding departments...');
   const itDept = await prisma.department.upsert({
@@ -374,6 +526,7 @@ async function main() {
       name: 'Information Technology',
       code: 'IT',
       description: 'IT Department',
+      officeId: mainOffice.id,
       isActive: true,
     },
   });
@@ -385,6 +538,34 @@ async function main() {
       name: 'Human Resources',
       code: 'HR',
       description: 'HR Department',
+      officeId: mainOffice.id,
+      isActive: true,
+    },
+  });
+
+  // Create sub-departments
+  const itSupportDept = await prisma.department.upsert({
+    where: { code: 'IT-SUPPORT' },
+    update: {},
+    create: {
+      name: 'IT Support',
+      code: 'IT-SUPPORT',
+      description: 'IT Support sub-department',
+      parentDepartmentId: itDept.id,
+      officeId: mainOffice.id,
+      isActive: true,
+    },
+  });
+
+  const hrRecruitmentDept = await prisma.department.upsert({
+    where: { code: 'HR-RECRUIT' },
+    update: {},
+    create: {
+      name: 'HR Recruitment',
+      code: 'HR-RECRUIT',
+      description: 'HR Recruitment sub-department',
+      parentDepartmentId: hrDept.id,
+      officeId: branchOffice.id,
       isActive: true,
     },
   });
@@ -425,7 +606,7 @@ async function main() {
       code: 'VL',
       description: 'Vacation leave (15 days per year for government employees)',
       daysPerYear: 15,
-      carryForward: true,
+      isCarryForward: true,
       maxCarryForward: 10,
       requiresApproval: true,
       isActive: true,
@@ -440,7 +621,7 @@ async function main() {
       code: 'SL',
       description: 'Sick leave (15 days per year for government employees)',
       daysPerYear: 15,
-      carryForward: true,
+      isCarryForward: true,
       maxCarryForward: 15,
       requiresApproval: true,
       isActive: true,
@@ -455,7 +636,7 @@ async function main() {
       code: 'EL',
       description: 'Emergency leave (5 days per year)',
       daysPerYear: 5,
-      carryForward: false,
+      isCarryForward: false,
       maxCarryForward: 0,
       requiresApproval: true,
       isActive: true,
@@ -470,7 +651,7 @@ async function main() {
       code: 'ML',
       description: 'Maternity leave (105 days for female employees)',
       daysPerYear: 105,
-      carryForward: false,
+      isCarryForward: false,
       maxCarryForward: 0,
       requiresApproval: true,
       isActive: true,
@@ -485,7 +666,7 @@ async function main() {
       code: 'PL',
       description: 'Paternity leave (7 days for male employees)',
       daysPerYear: 7,
-      carryForward: false,
+      isCarryForward: false,
       maxCarryForward: 0,
       requiresApproval: true,
       isActive: true,
@@ -500,7 +681,7 @@ async function main() {
       code: 'SOL',
       description: 'Solo parent leave (7 days per year)',
       daysPerYear: 7,
-      carryForward: false,
+      isCarryForward: false,
       maxCarryForward: 0,
       requiresApproval: true,
       isActive: true,
@@ -517,6 +698,7 @@ async function main() {
       userId: adminUser.id,
       departmentId: itDept.id,
       designationId: managerDesignation.id,
+      officeId: mainOffice.id,
       
       // Philippine Government ID Numbers
       tin: '123-456-789-000',
@@ -603,6 +785,7 @@ async function main() {
       userId: hrUser.id,
       departmentId: hrDept.id,
       designationId: managerDesignation.id,
+      officeId: mainOffice.id,
       
       // Philippine Government ID Numbers
       tin: '234-567-890-000',
@@ -688,6 +871,7 @@ async function main() {
       departmentId: itDept.id,
       designationId: developerDesignation.id,
       managerId: adminEmployee.id, // Admin is the manager
+      officeId: mainOffice.id,
       
       // Philippine Government ID Numbers
       tin: '345-678-901-000',
@@ -755,6 +939,21 @@ async function main() {
       currency: 'PHP',
       salaryGrade: 12,
       stepIncrement: 1,
+    },
+  });
+
+  // Update departments to assign department heads
+  await prisma.department.update({
+    where: { id: itDept.id },
+    data: {
+      departmentHeadId: adminEmployee.id,
+    },
+  });
+
+  await prisma.department.update({
+    where: { id: hrDept.id },
+    data: {
+      departmentHeadId: hrEmployee.id,
     },
   });
 

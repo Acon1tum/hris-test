@@ -3,109 +3,148 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Plus, ArrowLeft, Minus, ChevronUp, ChevronDown } from "lucide-react"
-import { useState } from "react"
+import { Label } from "@/components/ui/label"
+import { Plus, ArrowLeft, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
 import { DataTable } from "@/components/expense-accounts/data-table"
 import { type ExpenseAccount } from "@/components/expense-accounts/columns"
-
-const expenseAccounts: ExpenseAccount[] = [
-  { id: "1", name: "Salary Expense", code: "SAL-EXP", accountNumber: "6001", description: "Employee salaries", createdAt: "July 24, 2025" },
-  { id: "2", name: "Benefits Expense", code: "BEN-EXP", accountNumber: "6002", description: "Employee benefits", createdAt: "July 24, 2025" },
-]
-
-// Sample account options
-const accountOptions = [
-  { value: "101-10207", label: "101-10207 - Wages & Bonous" },
-  { value: "101-10402", label: "101-10402 - Tax Disbursment" },
-  { value: "204-10103", label: "204-10103 - Bank Loan Payable" },
-  { value: "101-10205", label: "101-10205 - Payroll Clearing Account" },
-  { value: "101-108", label: "101-108 - Summit Business Savings" },
-]
-
-type ExpenseAccountRow = {
-  id: string
-  expenseType: string
-  account: string
-}
+import { useExpenseAccounts, useCreateExpenseAccount, useUpdateExpenseAccount, useDeleteExpenseAccount } from "@/hooks/useExpenseAccounts"
+import { toast } from "sonner"
 
 export function ExpenseAccountsSection() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [isEditing, setIsEditing] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   
-  // Form state - editable table rows
-  const [expenseRows, setExpenseRows] = useState<ExpenseAccountRow[]>([
-    { id: "1", expenseType: "Salary Expense", account: "101-10207" },
-    { id: "2", expenseType: "Tax Expense", account: "101-10402" },
-    { id: "3", expenseType: "Payable Bank Account", account: "204-10103" },
-    { id: "4", expenseType: "Salary Payable", account: "101-10205" },
-    { id: "5", expenseType: "Superannuation Payable", account: "101-108" },
-  ])
+  // Hooks
+  const { data: expenseAccounts = [], isLoading, error } = useExpenseAccounts()
+  const createMutation = useCreateExpenseAccount()
+  const updateMutation = useUpdateExpenseAccount()
+  const deleteMutation = useDeleteExpenseAccount()
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    code: "",
+    accountNumber: "",
+    description: "",
+    expenseType: null as string | null,
+    account: null as string | null,
+  })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Convert expense accounts to match the ExpenseAccount type from columns
+  const expenseAccountData: ExpenseAccount[] = expenseAccounts.map((account) => ({
+    id: account.id,
+    name: account.name,
+    code: account.code,
+    accountNumber: account.accountNumber,
+    description: account.description || "",
+    createdAt: new Date(account.createdAt).toLocaleDateString(),
+  }))
+
+  // Auto-generate code from name
+  useEffect(() => {
+    if (formData.name && !editingId) {
+      const code = formData.name
+        .toUpperCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^A-Z0-9-]/g, '')
+        .substring(0, 20)
+      setFormData((prev) => ({ ...prev, code }))
+    }
+  }, [formData.name, editingId])
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      code: "",
+      accountNumber: "",
+      description: "",
+      expenseType: null,
+      account: null,
+    })
+    setEditingId(null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement form submission
-    console.log("Expense accounts:", expenseRows)
-    setIsEditing(false)
-  }
-
-  const handleAddRow = () => {
-    const newRow: ExpenseAccountRow = {
-      id: Date.now().toString(),
-      expenseType: "",
-      account: "",
+    
+    try {
+      if (editingId) {
+        await updateMutation.mutateAsync({
+          id: editingId,
+          data: {
+            name: formData.name,
+            code: formData.code,
+            accountNumber: formData.accountNumber,
+            description: formData.description || null,
+            expenseType: formData.expenseType,
+            account: formData.account,
+          },
+        })
+        toast.success("Expense account updated successfully")
+      } else {
+        await createMutation.mutateAsync({
+          name: formData.name,
+          code: formData.code,
+          accountNumber: formData.accountNumber,
+          description: formData.description || null,
+          expenseType: formData.expenseType,
+          account: formData.account,
+        })
+        toast.success("Expense account created successfully")
+      }
+      
+      setIsCreating(false)
+      setEditingId(null)
+      resetForm()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save expense account")
     }
-    setExpenseRows([...expenseRows, newRow])
-  }
-
-  const handleDeleteRow = (id: string) => {
-    setExpenseRows(expenseRows.filter((row) => row.id !== id))
-  }
-
-  const handleMoveRow = (index: number, direction: "up" | "down") => {
-    const newRows = [...expenseRows]
-    if (direction === "up" && index > 0) {
-      [newRows[index - 1], newRows[index]] = [newRows[index], newRows[index - 1]]
-    } else if (direction === "down" && index < newRows.length - 1) {
-      [newRows[index], newRows[index + 1]] = [newRows[index + 1], newRows[index]]
-    }
-    setExpenseRows(newRows)
-  }
-
-  const handleFieldChange = (rowId: string, field: keyof ExpenseAccountRow, value: string) => {
-    setExpenseRows(
-      expenseRows.map((row) =>
-        row.id === rowId ? { ...row, [field]: value } : row
-      )
-    )
   }
 
   const handleEdit = (account: ExpenseAccount) => {
-    // TODO: Load expense account data into form
-    setIsEditing(true)
+    const fullAccount = expenseAccounts.find((a) => a.id === account.id)
+    if (fullAccount) {
+      setFormData({
+        name: fullAccount.name,
+        code: fullAccount.code,
+        accountNumber: fullAccount.accountNumber,
+        description: fullAccount.description || "",
+        expenseType: fullAccount.expenseType,
+        account: fullAccount.account,
+      })
+      setEditingId(fullAccount.id)
+      setIsCreating(true)
+    }
   }
 
-  if (isEditing) {
+  const handleDelete = async (account: ExpenseAccount) => {
+    if (!confirm(`Are you sure you want to delete "${account.name}"?`)) {
+      return
+    }
+
+    try {
+      await deleteMutation.mutateAsync(account.id)
+      toast.success("Expense account deleted successfully")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete expense account")
+    }
+  }
+
+  const handleCancel = () => {
+    setIsCreating(false)
+    setEditingId(null)
+    resetForm()
+  }
+
+  if (isCreating) {
     return (
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Setup Payroll</CardTitle>
+              <CardTitle>{editingId ? 'Edit Expense Account' : 'Create New Expense Account'}</CardTitle>
               <CardDescription className="mt-1">Dashboard &gt; Payroll Expense Accounts</CardDescription>
             </div>
           </div>
@@ -113,102 +152,77 @@ export function ExpenseAccountsSection() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Payroll Expense Accounts</h3>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>
-                        Expense Type <span className="text-destructive">*</span>
-                      </TableHead>
-                      <TableHead>
-                        Account <span className="text-destructive">*</span>
-                      </TableHead>
-                      <TableHead className="w-[100px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {expenseRows.map((row, index) => (
-                      <TableRow key={row.id}>
-                        <TableCell>
-                          <Input
-                            value={row.expenseType}
-                            onChange={(e) => handleFieldChange(row.id, "expenseType", e.target.value)}
-                            className="w-full"
-                            placeholder="Enter expense type"
-                            required
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Select
-                              value={row.account}
-                              onValueChange={(value) => handleFieldChange(row.id, "account", value)}
-                              required
-                            >
-                              <SelectTrigger className="flex-1">
-                                <SelectValue placeholder="Select account" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {accountOptions.map((account) => (
-                                  <SelectItem key={account.value} value={account.value}>
-                                    {account.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <div className="flex flex-col">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-8 p-0"
-                                onClick={() => handleMoveRow(index, "up")}
-                                disabled={index === 0}
-                              >
-                                <ChevronUp className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-8 p-0"
-                                onClick={() => handleMoveRow(index, "down")}
-                                disabled={index === expenseRows.length - 1}
-                              >
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            {index === expenseRows.length - 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-green-600 hover:text-green-700"
-                                onClick={handleAddRow}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-red-600 hover:text-red-700"
-                              onClick={() => handleDeleteRow(row.id)}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">
+                    Name <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Enter expense account name"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="code">
+                    Code <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="code"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    placeholder="Enter expense account code"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="accountNumber">
+                  Account Number <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="accountNumber"
+                  value={formData.accountNumber}
+                  onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                  placeholder="Enter account number"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Input
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Enter description"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="expenseType">Expense Type</Label>
+                  <Input
+                    id="expenseType"
+                    value={formData.expenseType || ""}
+                    onChange={(e) => setFormData({ ...formData, expenseType: e.target.value || null })}
+                    placeholder="e.g., Salary Expense"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="account">Account</Label>
+                  <Input
+                    id="account"
+                    value={formData.account || ""}
+                    onChange={(e) => setFormData({ ...formData, account: e.target.value || null })}
+                    placeholder="e.g., 101-10207"
+                  />
+                </div>
               </div>
             </div>
 
@@ -217,14 +231,55 @@ export function ExpenseAccountsSection() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsEditing(false)}
+                onClick={handleCancel}
+                disabled={createMutation.isPending || updateMutation.isPending}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button type="submit">Save</Button>
+              <Button 
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {(createMutation.isPending || updateMutation.isPending) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {editingId ? "Update" : "Create"}
+              </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Payroll Expense Accounts</CardTitle>
+          <CardDescription>Manage payroll expense account mappings</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Payroll Expense Accounts</CardTitle>
+          <CardDescription>Manage payroll expense account mappings</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-destructive">
+            Error loading expense accounts: {error instanceof Error ? error.message : "Unknown error"}
+          </div>
         </CardContent>
       </Card>
     )
@@ -238,7 +293,7 @@ export function ExpenseAccountsSection() {
             <CardTitle>Payroll Expense Accounts</CardTitle>
             <CardDescription>Manage payroll expense account mappings</CardDescription>
           </div>
-          <Button onClick={() => setIsEditing(true)}>
+          <Button onClick={() => { setIsCreating(true); resetForm(); }}>
             <Plus className="mr-2 h-4 w-4" />
             Create New
           </Button>
@@ -246,22 +301,16 @@ export function ExpenseAccountsSection() {
       </CardHeader>
       <CardContent>
         <DataTable
-          data={expenseAccounts}
+          data={expenseAccountData}
           search={searchQuery}
           onSearchChange={setSearchQuery}
           onView={(account) => {
-            // TODO: Implement view
-            console.log("View", account)
-          }}
-          onEdit={(account) => {
             handleEdit(account)
           }}
-          onDelete={(account) => {
-            // TODO: Implement delete
-            console.log("Delete", account)
-          }}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
       </CardContent>
     </Card>
   )
-} 
+}

@@ -6,10 +6,11 @@ import { DataTableRowActions } from "./data-table-row-actions"
 export type Holiday = {
   id: string
   name: string
-  year: string
-  fromDate: string
-  toDate: string
-  totalDays: number
+  date: string
+  year: number
+  description?: string
+  isRecurring: boolean
+  createdAt: string
 }
 
 interface ColumnCallbacks {
@@ -27,6 +28,13 @@ export const getColumns = (callbacks?: ColumnCallbacks): ColumnDef<Holiday>[] =>
     },
   },
   {
+    accessorKey: "date",
+    header: "Date",
+    cell: ({ row }) => {
+      return <div>{row.getValue("date")}</div>
+    },
+  },
+  {
     accessorKey: "year",
     header: "Year",
     cell: ({ row }) => {
@@ -34,24 +42,24 @@ export const getColumns = (callbacks?: ColumnCallbacks): ColumnDef<Holiday>[] =>
     },
   },
   {
-    accessorKey: "fromDate",
-    header: "From Date",
+    accessorKey: "description",
+    header: "Description",
     cell: ({ row }) => {
-      return <div>{row.getValue("fromDate")}</div>
+      return <div>{row.getValue("description") || "-"}</div>
     },
   },
   {
-    accessorKey: "toDate",
-    header: "To Date",
+    accessorKey: "isRecurring",
+    header: "Recurring",
     cell: ({ row }) => {
-      return <div>{row.getValue("toDate")}</div>
+      return <div>{row.getValue("isRecurring") ? "Yes" : "No"}</div>
     },
   },
   {
-    accessorKey: "totalDays",
-    header: "Total Days",
+    accessorKey: "createdAt",
+    header: "Created At",
     cell: ({ row }) => {
-      return <div>{row.getValue("totalDays")}</div>
+      return <div>{row.getValue("createdAt")}</div>
     },
   },
   {

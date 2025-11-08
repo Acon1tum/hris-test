@@ -65,7 +65,9 @@ export function DataTable({
       const matchesSearch =
         !search ||
         item.name.toLowerCase().includes(search.toLowerCase()) ||
-        item.year.toLowerCase().includes(search.toLowerCase())
+        item.year.toString().toLowerCase().includes(search.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(search.toLowerCase())) ||
+        item.date.toLowerCase().includes(search.toLowerCase())
       return matchesSearch
     })
   }, [data, search])

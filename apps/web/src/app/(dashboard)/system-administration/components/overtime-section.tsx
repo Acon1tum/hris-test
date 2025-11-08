@@ -12,15 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, ArrowLeft } from "lucide-react"
+import { Plus, ArrowLeft, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { DataTable } from "@/components/overtime/data-table"
 import { type OvertimePolicy } from "@/components/overtime/columns"
-
-const overtimePolicies: OvertimePolicy[] = [
-  { id: "1", name: "Standard Overtime", rate: "1.5x", description: "Standard overtime compensation", createdAt: "July 24, 2025" },
-  { id: "2", name: "Holiday Overtime", rate: "2.0x", description: "Overtime on holidays", createdAt: "July 24, 2025" },
-]
+import { useOvertimePolicies, useCreateOvertimePolicy, useUpdateOvertimePolicy, useDeleteOvertimePolicy } from "@/hooks/useOvertimePolicies"
+import { toast } from "sonner"
 
 // Sample data for dropdowns
 const overtimePayComponents = [
@@ -38,34 +35,138 @@ const calculateBasedOnOptions = [
 export function OvertimeSection() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreating, setIsCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  
+  // Hooks
+  const { data: overtimePolicies = [], isLoading, error } = useOvertimePolicies()
+  const createMutation = useCreateOvertimePolicy()
+  const updateMutation = useUpdateOvertimePolicy()
+  const deleteMutation = useDeleteOvertimePolicy()
   
   // Form state
   const [formData, setFormData] = useState({
     name: "",
-    overtimePayComponent: "",
+    overtimePayComponent: null as string | null,
     description: "",
-    regularHoursPerDay: "",
-    regularHoursPerWeek: "",
-    weekdayOvertimeMultiplier: "",
-    weekendMultiplier: "",
-    holidayMultiplier: "",
-    maxDailyOvertimeHours: "",
-    maxWeeklyOvertimeHours: "",
-    maxMonthlyOvertimeHours: "",
+    regularHoursPerDay: 8,
+    regularHoursPerWeek: 40,
+    weekdayOvertimeMultiplier: 1.5,
+    weekendMultiplier: 1.5,
+    holidayMultiplier: 2.0,
+    maxDailyOvertimeHours: null as number | null,
+    maxWeeklyOvertimeHours: null as number | null,
+    maxMonthlyOvertimeHours: null as number | null,
     calculateBasedOn: "total-gross",
-    applicableAfterWorkingDays: "",
+    applicableAfterWorkingDays: null as number | null,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Convert overtime policies to match the OvertimePolicy type from columns
+  const overtimePolicyData: OvertimePolicy[] = overtimePolicies.map((policy) => ({
+    id: policy.id,
+    name: policy.name,
+    rate: `${policy.weekdayOvertimeMultiplier}x`,
+    description: policy.description || "",
+    createdAt: new Date(policy.createdAt).toLocaleDateString(),
+  }))
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      overtimePayComponent: null,
+      description: "",
+      regularHoursPerDay: 8,
+      regularHoursPerWeek: 40,
+      weekdayOvertimeMultiplier: 1.5,
+      weekendMultiplier: 1.5,
+      holidayMultiplier: 2.0,
+      maxDailyOvertimeHours: null,
+      maxWeeklyOvertimeHours: null,
+      maxMonthlyOvertimeHours: null,
+      calculateBasedOn: "total-gross",
+      applicableAfterWorkingDays: null,
+    })
+    setEditingId(null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement form submission
-    console.log("Form data:", formData)
-    setIsCreating(false)
+    
+    try {
+      if (editingId) {
+        await updateMutation.mutateAsync({
+          id: editingId,
+          data: {
+            ...formData,
+            description: formData.description || null,
+            overtimePayComponent: formData.overtimePayComponent || null,
+            maxDailyOvertimeHours: formData.maxDailyOvertimeHours,
+            maxWeeklyOvertimeHours: formData.maxWeeklyOvertimeHours,
+            maxMonthlyOvertimeHours: formData.maxMonthlyOvertimeHours,
+            applicableAfterWorkingDays: formData.applicableAfterWorkingDays,
+          },
+        })
+        toast.success("Overtime policy updated successfully")
+      } else {
+        await createMutation.mutateAsync({
+          ...formData,
+          description: formData.description || null,
+          overtimePayComponent: formData.overtimePayComponent || null,
+          maxDailyOvertimeHours: formData.maxDailyOvertimeHours,
+          maxWeeklyOvertimeHours: formData.maxWeeklyOvertimeHours,
+          maxMonthlyOvertimeHours: formData.maxMonthlyOvertimeHours,
+          applicableAfterWorkingDays: formData.applicableAfterWorkingDays,
+        })
+        toast.success("Overtime policy created successfully")
+      }
+      
+      setIsCreating(false)
+      setEditingId(null)
+      resetForm()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save overtime policy")
+    }
   }
 
   const handleEdit = (policy: OvertimePolicy) => {
-    // TODO: Load overtime policy data into form
-    setIsCreating(true)
+    const fullPolicy = overtimePolicies.find((p) => p.id === policy.id)
+    if (fullPolicy) {
+      setFormData({
+        name: fullPolicy.name,
+        overtimePayComponent: fullPolicy.overtimePayComponent,
+        description: fullPolicy.description || "",
+        regularHoursPerDay: fullPolicy.regularHoursPerDay,
+        regularHoursPerWeek: fullPolicy.regularHoursPerWeek,
+        weekdayOvertimeMultiplier: Number(fullPolicy.weekdayOvertimeMultiplier),
+        weekendMultiplier: Number(fullPolicy.weekendMultiplier),
+        holidayMultiplier: Number(fullPolicy.holidayMultiplier),
+        maxDailyOvertimeHours: fullPolicy.maxDailyOvertimeHours,
+        maxWeeklyOvertimeHours: fullPolicy.maxWeeklyOvertimeHours,
+        maxMonthlyOvertimeHours: fullPolicy.maxMonthlyOvertimeHours,
+        calculateBasedOn: fullPolicy.calculateBasedOn,
+        applicableAfterWorkingDays: fullPolicy.applicableAfterWorkingDays,
+      })
+      setEditingId(fullPolicy.id)
+      setIsCreating(true)
+    }
+  }
+
+  const handleDelete = async (policy: OvertimePolicy) => {
+    if (!confirm(`Are you sure you want to delete "${policy.name}"?`)) {
+      return
+    }
+
+    try {
+      await deleteMutation.mutateAsync(policy.id)
+      toast.success("Overtime policy deleted successfully")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete overtime policy")
+    }
+  }
+
+  const handleCancel = () => {
+    setIsCreating(false)
+    setEditingId(null)
+    resetForm()
   }
 
   if (isCreating) {
@@ -74,7 +175,7 @@ export function OvertimeSection() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Add New Overtime Policy</CardTitle>
+              <CardTitle>{editingId ? 'Edit Overtime Policy' : 'Create New Overtime Policy'}</CardTitle>
               <CardDescription className="mt-1">Dashboard &gt; Overtime Policies</CardDescription>
             </div>
           </div>
@@ -100,17 +201,17 @@ export function OvertimeSection() {
 
                 <div className="space-y-2">
                   <Label htmlFor="overtimePayComponent">
-                    Select Overtime Pay Component <span className="text-destructive">*</span>
+                    Select Overtime Pay Component
                   </Label>
                   <Select
-                    value={formData.overtimePayComponent}
-                    onValueChange={(value) => setFormData({ ...formData, overtimePayComponent: value })}
-                    required
+                    value={formData.overtimePayComponent || "none"}
+                    onValueChange={(value) => setFormData({ ...formData, overtimePayComponent: value === "none" ? null : value })}
                   >
                     <SelectTrigger id="overtimePayComponent">
                       <SelectValue placeholder="Select Overtime Pay Component" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
                       {overtimePayComponents.map((component) => (
                         <SelectItem key={component.id} value={component.id}>
                           {component.name}
@@ -146,7 +247,7 @@ export function OvertimeSection() {
                     id="regularHoursPerDay"
                     type="number"
                     value={formData.regularHoursPerDay}
-                    onChange={(e) => setFormData({ ...formData, regularHoursPerDay: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, regularHoursPerDay: parseInt(e.target.value) || 8 })}
                     placeholder="Enter Regular Hours Per Day. Example: 8"
                     min="0"
                     required
@@ -161,7 +262,7 @@ export function OvertimeSection() {
                     id="regularHoursPerWeek"
                     type="number"
                     value={formData.regularHoursPerWeek}
-                    onChange={(e) => setFormData({ ...formData, regularHoursPerWeek: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, regularHoursPerWeek: parseInt(e.target.value) || 40 })}
                     placeholder="Enter Regular Hours Per Week. Example: 40"
                     min="0"
                     required
@@ -183,7 +284,7 @@ export function OvertimeSection() {
                     type="number"
                     step="0.1"
                     value={formData.weekdayOvertimeMultiplier}
-                    onChange={(e) => setFormData({ ...formData, weekdayOvertimeMultiplier: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, weekdayOvertimeMultiplier: parseFloat(e.target.value) || 1.5 })}
                     placeholder="Enter Weekday Overtime Multiplier. Example: 1.5"
                     min="0"
                     required
@@ -199,7 +300,7 @@ export function OvertimeSection() {
                     type="number"
                     step="0.1"
                     value={formData.weekendMultiplier}
-                    onChange={(e) => setFormData({ ...formData, weekendMultiplier: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, weekendMultiplier: parseFloat(e.target.value) || 1.5 })}
                     placeholder="Enter Weekend Multiplier. Example: 1.5"
                     min="0"
                     required
@@ -215,8 +316,8 @@ export function OvertimeSection() {
                     type="number"
                     step="0.1"
                     value={formData.holidayMultiplier}
-                    onChange={(e) => setFormData({ ...formData, holidayMultiplier: e.target.value })}
-                    placeholder="Enter Holiday Multiplier. Example: 1.5"
+                    onChange={(e) => setFormData({ ...formData, holidayMultiplier: parseFloat(e.target.value) || 2.0 })}
+                    placeholder="Enter Holiday Multiplier. Example: 2.0"
                     min="0"
                     required
                   />
@@ -229,47 +330,38 @@ export function OvertimeSection() {
               <h3 className="text-lg font-semibold">Max Overtime Hours</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="maxDailyOvertimeHours">
-                    Max Daily Overtime Hours <span className="text-destructive">*</span>
-                  </Label>
+                  <Label htmlFor="maxDailyOvertimeHours">Max Daily Overtime Hours</Label>
                   <Input
                     id="maxDailyOvertimeHours"
                     type="number"
-                    value={formData.maxDailyOvertimeHours}
-                    onChange={(e) => setFormData({ ...formData, maxDailyOvertimeHours: e.target.value })}
-                    placeholder="Enter Max Daily Overtime Hours. Example: 4"
                     min="0"
-                    required
+                    value={formData.maxDailyOvertimeHours ?? ""}
+                    onChange={(e) => setFormData({ ...formData, maxDailyOvertimeHours: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder="Enter Max Daily Overtime Hours. Example: 4"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="maxWeeklyOvertimeHours">
-                    Max Weekly Overtime Hours <span className="text-destructive">*</span>
-                  </Label>
+                  <Label htmlFor="maxWeeklyOvertimeHours">Max Weekly Overtime Hours</Label>
                   <Input
                     id="maxWeeklyOvertimeHours"
                     type="number"
-                    value={formData.maxWeeklyOvertimeHours}
-                    onChange={(e) => setFormData({ ...formData, maxWeeklyOvertimeHours: e.target.value })}
-                    placeholder="Enter Max Weekly Overtime Hours. Example: 10"
                     min="0"
-                    required
+                    value={formData.maxWeeklyOvertimeHours ?? ""}
+                    onChange={(e) => setFormData({ ...formData, maxWeeklyOvertimeHours: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder="Enter Max Weekly Overtime Hours. Example: 10"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="maxMonthlyOvertimeHours">
-                    Max Monthly Overtime Hours <span className="text-destructive">*</span>
-                  </Label>
+                  <Label htmlFor="maxMonthlyOvertimeHours">Max Monthly Overtime Hours</Label>
                   <Input
                     id="maxMonthlyOvertimeHours"
                     type="number"
-                    value={formData.maxMonthlyOvertimeHours}
-                    onChange={(e) => setFormData({ ...formData, maxMonthlyOvertimeHours: e.target.value })}
-                    placeholder="Enter Max Monthly Overtime Hours. Example: 40"
                     min="0"
-                    required
+                    value={formData.maxMonthlyOvertimeHours ?? ""}
+                    onChange={(e) => setFormData({ ...formData, maxMonthlyOvertimeHours: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder="Enter Max Monthly Overtime Hours. Example: 40"
                   />
                 </div>
               </div>
@@ -306,10 +398,10 @@ export function OvertimeSection() {
                   <Input
                     id="applicableAfterWorkingDays"
                     type="number"
-                    value={formData.applicableAfterWorkingDays}
-                    onChange={(e) => setFormData({ ...formData, applicableAfterWorkingDays: e.target.value })}
-                    placeholder="Enter number of working days"
                     min="0"
+                    value={formData.applicableAfterWorkingDays ?? ""}
+                    onChange={(e) => setFormData({ ...formData, applicableAfterWorkingDays: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder="Enter number of working days"
                   />
                 </div>
               </div>
@@ -320,14 +412,55 @@ export function OvertimeSection() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsCreating(false)}
+                onClick={handleCancel}
+                disabled={createMutation.isPending || updateMutation.isPending}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button type="submit">Save</Button>
+              <Button 
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {(createMutation.isPending || updateMutation.isPending) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {editingId ? "Update" : "Create"}
+              </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Overtime Policies</CardTitle>
+          <CardDescription>Manage overtime compensation policies</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Overtime Policies</CardTitle>
+          <CardDescription>Manage overtime compensation policies</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-destructive">
+            Error loading overtime policies: {error instanceof Error ? error.message : "Unknown error"}
+          </div>
         </CardContent>
       </Card>
     )
@@ -341,7 +474,7 @@ export function OvertimeSection() {
             <CardTitle>Overtime Policies</CardTitle>
             <CardDescription>Manage overtime compensation policies</CardDescription>
           </div>
-          <Button onClick={() => setIsCreating(true)}>
+          <Button onClick={() => { setIsCreating(true); resetForm(); }}>
             <Plus className="mr-2 h-4 w-4" />
             Create New
           </Button>
@@ -349,20 +482,14 @@ export function OvertimeSection() {
       </CardHeader>
       <CardContent>
         <DataTable
-          data={overtimePolicies}
+          data={overtimePolicyData}
           search={searchQuery}
           onSearchChange={setSearchQuery}
           onView={(policy) => {
-            // TODO: Implement view
-            console.log("View", policy)
-          }}
-          onEdit={(policy) => {
             handleEdit(policy)
           }}
-          onDelete={(policy) => {
-            // TODO: Implement delete
-            console.log("Delete", policy)
-          }}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
       </CardContent>
     </Card>

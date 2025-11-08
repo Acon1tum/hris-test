@@ -4,110 +4,152 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Plus, ArrowLeft, Minus, X, ChevronUp, ChevronDown } from "lucide-react"
-import { useState } from "react"
+import { Plus, ArrowLeft, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
 import { DataTable } from "@/components/shifts/data-table"
 import { type Shift } from "@/components/shifts/columns"
-
-const shifts: Shift[] = [
-  { id: "1", name: "Morning Shift", code: "MORN", startTime: "08:00", endTime: "16:00", createdAt: "July 24, 2025" },
-  { id: "2", name: "Afternoon Shift", code: "AFT", startTime: "12:00", endTime: "20:00", createdAt: "July 24, 2025" },
-  { id: "3", name: "Night Shift", code: "NIGHT", startTime: "20:00", endTime: "04:00", createdAt: "July 24, 2025" },
-]
-
-type ShiftTypeRow = {
-  id: string
-  name: string
-  startTime: string
-  endTime: string
-  days: string
-  breakDuration: string
-  overtimeMultiplier: string
-}
+import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "@/hooks/useShifts"
+import { toast } from "sonner"
 
 export function ShiftsSection() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [isEditing, setIsEditing] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   
-  // Form state - editable table rows
-  const [shiftRows, setShiftRows] = useState<ShiftTypeRow[]>([
-    { id: "1", name: "Evening", startTime: "19:00:00", endTime: "22:00:00", days: "Monday x + 4", breakDuration: "0.00", overtimeMultiplier: "1.00" },
-    { id: "2", name: "Late Night", startTime: "02:00:00", endTime: "06:00:00", days: "Monday x + 4", breakDuration: "0.00", overtimeMultiplier: "1.00" },
-    { id: "3", name: "Morning", startTime: "06:00:00", endTime: "11:00:00", days: "Monday x + 4", breakDuration: "0.00", overtimeMultiplier: "1.00" },
-    { id: "4", name: "Night", startTime: "22:00:00", endTime: "02:00:00", days: "Monday x + 4", breakDuration: "0.00", overtimeMultiplier: "1.00" },
-    { id: "5", name: "Regular", startTime: "11:00:00", endTime: "19:00:00", days: "Monday x + 4", breakDuration: "0.00", overtimeMultiplier: "1.00" },
-  ])
+  // Hooks
+  const { data: shifts = [], isLoading, error } = useShifts()
+  const createMutation = useCreateShift()
+  const updateMutation = useUpdateShift()
+  const deleteMutation = useDeleteShift()
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    code: "",
+    startTime: "08:00:00",
+    endTime: "17:00:00",
+    days: null as string | null,
+    breakDuration: null as number | null,
+    overtimeMultiplier: null as number | null,
+  })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // TODO: Implement form submission
-    console.log("Shift types:", shiftRows)
-    setIsEditing(false)
-  }
+  // Convert shifts to match the Shift type from columns
+  const shiftData: Shift[] = shifts.map((shift) => ({
+    id: shift.id,
+    name: shift.name,
+    code: shift.code,
+    startTime: shift.startTime,
+    endTime: shift.endTime,
+    createdAt: new Date(shift.createdAt).toLocaleDateString(),
+  }))
 
-  const handleAddRow = () => {
-    const newRow: ShiftTypeRow = {
-      id: Date.now().toString(),
+  // Auto-generate code from name
+  useEffect(() => {
+    if (formData.name && !editingId) {
+      const code = formData.name
+        .toUpperCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^A-Z0-9-]/g, '')
+        .substring(0, 20)
+      setFormData((prev) => ({ ...prev, code }))
+    }
+  }, [formData.name, editingId])
+
+  const resetForm = () => {
+    setFormData({
       name: "",
+      code: "",
       startTime: "08:00:00",
       endTime: "17:00:00",
-      days: "Monday x + 4",
-      breakDuration: "0.00",
-      overtimeMultiplier: "1.00",
+      days: null,
+      breakDuration: null,
+      overtimeMultiplier: null,
+    })
+    setEditingId(null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    try {
+      if (editingId) {
+        await updateMutation.mutateAsync({
+          id: editingId,
+          data: {
+            name: formData.name,
+            code: formData.code,
+            startTime: formData.startTime,
+            endTime: formData.endTime,
+            days: formData.days,
+            breakDuration: formData.breakDuration,
+            overtimeMultiplier: formData.overtimeMultiplier,
+          },
+        })
+        toast.success("Shift updated successfully")
+      } else {
+        await createMutation.mutateAsync({
+          name: formData.name,
+          code: formData.code,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          days: formData.days,
+          breakDuration: formData.breakDuration,
+          overtimeMultiplier: formData.overtimeMultiplier,
+        })
+        toast.success("Shift created successfully")
+      }
+      
+      setIsCreating(false)
+      setEditingId(null)
+      resetForm()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save shift")
     }
-    setShiftRows([...shiftRows, newRow])
-  }
-
-  const handleDeleteRow = (id: string) => {
-    setShiftRows(shiftRows.filter((row) => row.id !== id))
-  }
-
-  const handleMoveRow = (index: number, direction: "up" | "down") => {
-    const newRows = [...shiftRows]
-    if (direction === "up" && index > 0) {
-      [newRows[index - 1], newRows[index]] = [newRows[index], newRows[index - 1]]
-    } else if (direction === "down" && index < newRows.length - 1) {
-      [newRows[index], newRows[index + 1]] = [newRows[index + 1], newRows[index]]
-    }
-    setShiftRows(newRows)
-  }
-
-  const handleClearField = (rowId: string, field: keyof ShiftTypeRow) => {
-    setShiftRows(
-      shiftRows.map((row) =>
-        row.id === rowId ? { ...row, [field]: "" } : row
-      )
-    )
-  }
-
-  const handleFieldChange = (rowId: string, field: keyof ShiftTypeRow, value: string) => {
-    setShiftRows(
-      shiftRows.map((row) =>
-        row.id === rowId ? { ...row, [field]: value } : row
-      )
-    )
   }
 
   const handleEdit = (shift: Shift) => {
-    // TODO: Load shift data into form
-    setIsEditing(true)
+    const fullShift = shifts.find((s) => s.id === shift.id)
+    if (fullShift) {
+      setFormData({
+        name: fullShift.name,
+        code: fullShift.code,
+        startTime: fullShift.startTime,
+        endTime: fullShift.endTime,
+        days: fullShift.days,
+        breakDuration: fullShift.breakDuration ? Number(fullShift.breakDuration) : null,
+        overtimeMultiplier: fullShift.overtimeMultiplier ? Number(fullShift.overtimeMultiplier) : null,
+      })
+      setEditingId(fullShift.id)
+      setIsCreating(true)
+    }
   }
 
-  if (isEditing) {
+  const handleDelete = async (shift: Shift) => {
+    if (!confirm(`Are you sure you want to delete "${shift.name}"?`)) {
+      return
+    }
+
+    try {
+      await deleteMutation.mutateAsync(shift.id)
+      toast.success("Shift deleted successfully")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete shift")
+    }
+  }
+
+  const handleCancel = () => {
+    setIsCreating(false)
+    setEditingId(null)
+    resetForm()
+  }
+
+  if (isCreating) {
     return (
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Update Shift Type</CardTitle>
+              <CardTitle>{editingId ? 'Edit Shift' : 'Create New Shift'}</CardTitle>
               <CardDescription className="mt-1">Dashboard &gt; Shift Types</CardDescription>
             </div>
           </div>
@@ -115,202 +157,100 @@ export function ShiftsSection() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Shift Types</h3>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Start Time</TableHead>
-                      <TableHead>End Time</TableHead>
-                      <TableHead>Days</TableHead>
-                      <TableHead>Break Duration(hours)</TableHead>
-                      <TableHead>Overtime Multiplier</TableHead>
-                      <TableHead className="w-[100px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {shiftRows.map((row, index) => (
-                      <TableRow key={row.id}>
-                        <TableCell>
-                          <Input
-                            value={row.name}
-                            onChange={(e) => handleFieldChange(row.id, "name", e.target.value)}
-                            className="w-full"
-                            placeholder="Shift name"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Input
-                              type="time"
-                              value={row.startTime}
-                              onChange={(e) => handleFieldChange(row.id, "startTime", e.target.value)}
-                              className="w-full"
-                              step="1"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleClearField(row.id, "startTime")}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                            <div className="flex flex-col">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-8 p-0"
-                                onClick={() => handleMoveRow(index, "up")}
-                                disabled={index === 0}
-                              >
-                                <ChevronUp className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-8 p-0"
-                                onClick={() => handleMoveRow(index, "down")}
-                                disabled={index === shiftRows.length - 1}
-                              >
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Input
-                              type="time"
-                              value={row.endTime}
-                              onChange={(e) => handleFieldChange(row.id, "endTime", e.target.value)}
-                              className="w-full"
-                              step="1"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleClearField(row.id, "endTime")}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                            <div className="flex flex-col">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-8 p-0"
-                                onClick={() => handleMoveRow(index, "up")}
-                                disabled={index === 0}
-                              >
-                                <ChevronUp className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-8 p-0"
-                                onClick={() => handleMoveRow(index, "down")}
-                                disabled={index === shiftRows.length - 1}
-                              >
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Input
-                              value={row.days}
-                              onChange={(e) => handleFieldChange(row.id, "days", e.target.value)}
-                              className="w-full"
-                              placeholder="Monday x + 4"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleClearField(row.id, "days")}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                            <div className="flex flex-col">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-8 p-0"
-                                onClick={() => handleMoveRow(index, "up")}
-                                disabled={index === 0}
-                              >
-                                <ChevronUp className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-8 p-0"
-                                onClick={() => handleMoveRow(index, "down")}
-                                disabled={index === shiftRows.length - 1}
-                              >
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={row.breakDuration}
-                            onChange={(e) => handleFieldChange(row.id, "breakDuration", e.target.value)}
-                            className="w-full"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={row.overtimeMultiplier}
-                            onChange={(e) => handleFieldChange(row.id, "overtimeMultiplier", e.target.value)}
-                            className="w-full"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            {index === shiftRows.length - 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-green-600 hover:text-green-700"
-                                onClick={handleAddRow}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-red-600 hover:text-red-700"
-                              onClick={() => handleDeleteRow(row.id)}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">
+                    Name <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Enter shift name"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="code">
+                    Code <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="code"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    placeholder="Enter shift code"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startTime">
+                    Start Time <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    step="1"
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="endTime">
+                    End Time <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    step="1"
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="days">Days</Label>
+                <Input
+                  id="days"
+                  value={formData.days || ""}
+                  onChange={(e) => setFormData({ ...formData, days: e.target.value || null })}
+                  placeholder="e.g., Monday x + 4"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="breakDuration">Break Duration (hours)</Label>
+                  <Input
+                    id="breakDuration"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.breakDuration ?? ""}
+                    onChange={(e) => setFormData({ ...formData, breakDuration: e.target.value ? parseFloat(e.target.value) : null })}
+                    placeholder="Enter break duration"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="overtimeMultiplier">Overtime Multiplier</Label>
+                  <Input
+                    id="overtimeMultiplier"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.overtimeMultiplier ?? ""}
+                    onChange={(e) => setFormData({ ...formData, overtimeMultiplier: e.target.value ? parseFloat(e.target.value) : null })}
+                    placeholder="Enter overtime multiplier"
+                  />
+                </div>
               </div>
             </div>
 
@@ -319,14 +259,55 @@ export function ShiftsSection() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsEditing(false)}
+                onClick={handleCancel}
+                disabled={createMutation.isPending || updateMutation.isPending}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button type="submit">Save</Button>
+              <Button 
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {(createMutation.isPending || updateMutation.isPending) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {editingId ? "Update" : "Create"}
+              </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Shift Types</CardTitle>
+          <CardDescription>Manage work shift schedules</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Shift Types</CardTitle>
+          <CardDescription>Manage work shift schedules</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-destructive">
+            Error loading shifts: {error instanceof Error ? error.message : "Unknown error"}
+          </div>
         </CardContent>
       </Card>
     )
@@ -340,7 +321,7 @@ export function ShiftsSection() {
             <CardTitle>Shift Types</CardTitle>
             <CardDescription>Manage work shift schedules</CardDescription>
           </div>
-          <Button onClick={() => setIsEditing(true)}>
+          <Button onClick={() => { setIsCreating(true); resetForm(); }}>
             <Plus className="mr-2 h-4 w-4" />
             Create New
           </Button>
@@ -348,22 +329,16 @@ export function ShiftsSection() {
       </CardHeader>
       <CardContent>
         <DataTable
-          data={shifts}
+          data={shiftData}
           search={searchQuery}
           onSearchChange={setSearchQuery}
           onView={(shift) => {
-            // TODO: Implement view
-            console.log("View", shift)
-          }}
-          onEdit={(shift) => {
             handleEdit(shift)
           }}
-          onDelete={(shift) => {
-            // TODO: Implement delete
-            console.log("Delete", shift)
-          }}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
       </CardContent>
     </Card>
   )
-} 
+}

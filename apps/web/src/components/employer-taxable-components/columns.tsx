@@ -7,7 +7,8 @@ export type EmployerTaxableComponent = {
   id: string
   name: string
   code: string
-  taxType: string
+  type: string
+  taxType?: string // For backward compatibility, will map from type
   description: string
   createdAt: string
 }
@@ -34,10 +35,10 @@ export const getColumns = (callbacks?: ColumnCallbacks): ColumnDef<EmployerTaxab
     },
   },
   {
-    accessorKey: "taxType",
-    header: "Tax Type",
+    accessorKey: "type",
+    header: "Type",
     cell: ({ row }) => {
-      return <div>{row.getValue("taxType")}</div>
+      return <div>{row.getValue("type")}</div>
     },
   },
   {

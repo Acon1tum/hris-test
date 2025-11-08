@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -11,65 +12,132 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, ArrowLeft, Minus } from "lucide-react"
+import { Plus, ArrowLeft, Minus, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { DataTable } from "@/components/leave-policies/data-table"
 import { type LeavePolicy } from "@/components/leave-policies/columns"
-
-const leavePolicies: LeavePolicy[] = [
-  { id: "1", name: "Standard Leave Policy", description: "Standard annual leave allocation", maxDays: 15, createdAt: "July 24, 2025" },
-  { id: "2", name: "Manager Leave Policy", description: "Enhanced leave for managers", maxDays: 20, createdAt: "July 24, 2025" },
-]
-
-// Sample data for dropdowns
-const employmentTypes = [
-  { id: "1", name: "Full Time" },
-  { id: "2", name: "Part Time" },
-  { id: "3", name: "Contract" },
-  { id: "4", name: "Temporary" },
-]
-
-const leaveTypes = [
-  { id: "1", name: "Annual Leave" },
-  { id: "2", name: "Sick Leave" },
-  { id: "3", name: "Personal Leave" },
-  { id: "4", name: "Casual Leave" },
-]
+import { useLeavePolicies, useCreateLeavePolicy, useUpdateLeavePolicy, useDeleteLeavePolicy } from "@/hooks/useLeavePolicies"
+import { useEmploymentTypes } from "@/hooks/useEmploymentTypes"
+import { useLeaveTypes } from "@/hooks/useLeaveTypes"
+import { toast } from "sonner"
 
 export function LeavePoliciesSection() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreating, setIsCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  
+  // Hooks
+  const { data: leavePolicies = [], isLoading, error } = useLeavePolicies()
+  const { data: employmentTypes = [] } = useEmploymentTypes()
+  const { data: leaveTypes = [] } = useLeaveTypes()
+  const createMutation = useCreateLeavePolicy()
+  const updateMutation = useUpdateLeavePolicy()
+  const deleteMutation = useDeleteLeavePolicy()
   
   // Form state
   const [formData, setFormData] = useState({
     name: "",
-    employmentType: "",
-    leaveType: "",
-    numberOfDays: "0",
+    description: "",
+    employmentTypeId: "none",
+    leaveTypeId: "none",
+    numberOfDays: 0,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Convert leave policies to match the LeavePolicy type from columns
+  const leavePolicyData: LeavePolicy[] = leavePolicies.map((policy) => ({
+    id: policy.id,
+    name: policy.name,
+    description: policy.description || "",
+    maxDays: policy.numberOfDays,
+    createdAt: new Date(policy.createdAt).toLocaleDateString(),
+  }))
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      employmentTypeId: "none",
+      leaveTypeId: "none",
+      numberOfDays: 0,
+    })
+    setEditingId(null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement form submission
-    console.log("Form data:", formData)
-    setIsCreating(false)
+    
+    try {
+      if (editingId) {
+        await updateMutation.mutateAsync({
+          id: editingId,
+          data: {
+            ...formData,
+            description: formData.description || null,
+            employmentTypeId: formData.employmentTypeId === "none" ? null : formData.employmentTypeId,
+            leaveTypeId: formData.leaveTypeId === "none" ? null : formData.leaveTypeId,
+          },
+        })
+        toast.success("Leave policy updated successfully")
+      } else {
+        await createMutation.mutateAsync({
+          ...formData,
+          description: formData.description || null,
+          employmentTypeId: formData.employmentTypeId === "none" ? null : formData.employmentTypeId,
+          leaveTypeId: formData.leaveTypeId === "none" ? null : formData.leaveTypeId,
+        })
+        toast.success("Leave policy created successfully")
+      }
+      
+      setIsCreating(false)
+      setEditingId(null)
+      resetForm()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save leave policy")
+    }
   }
 
   const handleIncrementDays = () => {
-    const currentDays = parseInt(formData.numberOfDays) || 0
-    setFormData({ ...formData, numberOfDays: (currentDays + 1).toString() })
+    setFormData({ ...formData, numberOfDays: formData.numberOfDays + 1 })
   }
 
   const handleDecrementDays = () => {
-    const currentDays = parseInt(formData.numberOfDays) || 0
-    if (currentDays > 0) {
-      setFormData({ ...formData, numberOfDays: (currentDays - 1).toString() })
+    if (formData.numberOfDays > 0) {
+      setFormData({ ...formData, numberOfDays: formData.numberOfDays - 1 })
     }
   }
 
   const handleEdit = (policy: LeavePolicy) => {
-    // TODO: Load leave policy data into form
-    setIsCreating(true)
+    const fullPolicy = leavePolicies.find((p) => p.id === policy.id)
+    if (fullPolicy) {
+      setFormData({
+        name: fullPolicy.name,
+        description: fullPolicy.description || "",
+        employmentTypeId: fullPolicy.employmentTypeId || "none",
+        leaveTypeId: fullPolicy.leaveTypeId || "none",
+        numberOfDays: fullPolicy.numberOfDays,
+      })
+      setEditingId(fullPolicy.id)
+      setIsCreating(true)
+    }
+  }
+
+  const handleDelete = async (policy: LeavePolicy) => {
+    if (!confirm(`Are you sure you want to delete "${policy.name}"?`)) {
+      return
+    }
+
+    try {
+      await deleteMutation.mutateAsync(policy.id)
+      toast.success("Leave policy deleted successfully")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete leave policy")
+    }
+  }
+
+  const handleCancel = () => {
+    setIsCreating(false)
+    setEditingId(null)
+    resetForm()
   }
 
   if (isCreating) {
@@ -78,7 +146,7 @@ export function LeavePoliciesSection() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Add New Leave Policy</CardTitle>
+              <CardTitle>{editingId ? 'Edit Leave Policy' : 'Create New Leave Policy'}</CardTitle>
               <CardDescription className="mt-1">Dashboard &gt; Leave Policies</CardDescription>
             </div>
           </div>
@@ -99,18 +167,28 @@ export function LeavePoliciesSection() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="employmentType">
-                  Employment Type <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={4}
+                  className="resize-none"
+                  placeholder="Enter description..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="employmentTypeId">Employment Type</Label>
                 <Select
-                  value={formData.employmentType}
-                  onValueChange={(value) => setFormData({ ...formData, employmentType: value })}
-                  required
+                  value={formData.employmentTypeId}
+                  onValueChange={(value) => setFormData({ ...formData, employmentTypeId: value })}
                 >
-                  <SelectTrigger id="employmentType">
+                  <SelectTrigger id="employmentTypeId">
                     <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
                     {employmentTypes.map((type) => (
                       <SelectItem key={type.id} value={type.id}>
                         {type.name}
@@ -121,18 +199,16 @@ export function LeavePoliciesSection() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="leaveType">
-                  Leave Type <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="leaveTypeId">Leave Type</Label>
                 <Select
-                  value={formData.leaveType}
-                  onValueChange={(value) => setFormData({ ...formData, leaveType: value })}
-                  required
+                  value={formData.leaveTypeId}
+                  onValueChange={(value) => setFormData({ ...formData, leaveTypeId: value })}
                 >
-                  <SelectTrigger id="leaveType">
+                  <SelectTrigger id="leaveTypeId">
                     <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
                     {leaveTypes.map((type) => (
                       <SelectItem key={type.id} value={type.id}>
                         {type.name}
@@ -151,7 +227,7 @@ export function LeavePoliciesSection() {
                     id="numberOfDays"
                     type="number"
                     value={formData.numberOfDays}
-                    onChange={(e) => setFormData({ ...formData, numberOfDays: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, numberOfDays: parseInt(e.target.value) || 0 })}
                     min="0"
                     required
                     className="flex-1"
@@ -183,12 +259,21 @@ export function LeavePoliciesSection() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsCreating(false)}
+                onClick={handleCancel}
+                disabled={createMutation.isPending || updateMutation.isPending}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button type="submit">Save</Button>
+              <Button 
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {(createMutation.isPending || updateMutation.isPending) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {editingId ? "Update" : "Create"}
+              </Button>
             </div>
           </form>
         </CardContent>
@@ -204,29 +289,33 @@ export function LeavePoliciesSection() {
             <CardTitle>Leave Policy</CardTitle>
             <CardDescription>Manage leave policies and allocations</CardDescription>
           </div>
-          <Button onClick={() => setIsCreating(true)}>
+          <Button onClick={() => { setIsCreating(true); resetForm(); }}>
             <Plus className="mr-2 h-4 w-4" />
             Create New
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <DataTable
-          data={leavePolicies}
-          search={searchQuery}
-          onSearchChange={setSearchQuery}
-          onView={(policy) => {
-            // TODO: Implement view
-            console.log("View", policy)
-          }}
-          onEdit={(policy) => {
-            handleEdit(policy)
-          }}
-          onDelete={(policy) => {
-            // TODO: Implement delete
-            console.log("Delete", policy)
-          }}
-        />
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-8 text-destructive">
+            Error loading leave policies: {error instanceof Error ? error.message : "Unknown error"}
+          </div>
+        ) : (
+          <DataTable
+            data={leavePolicyData}
+            search={searchQuery}
+            onSearchChange={setSearchQuery}
+            onView={(policy) => {
+              handleEdit(policy)
+            }}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        )}
       </CardContent>
     </Card>
   )
