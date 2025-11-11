@@ -239,3 +239,6 @@
 {"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-11T01:30:06.254Z"}
 {"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-11T01:30:06.311Z"}
 {"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-11T01:30:06.313Z"}
+{"level":"info","message":"Database connected successfully","service":"hris-api","timestamp":"2025-11-11T02:06:29.774Z"}
+{"level":"info","message":"🚀 Server is running on http://localhost:3001","service":"hris-api","timestamp":"2025-11-11T02:06:29.798Z"}
+{"level":"info","message":"📚 Environment: development","service":"hris-api","timestamp":"2025-11-11T02:06:29.799Z"}

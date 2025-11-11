@@ -8,6 +8,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Quanby HRIS',
   description: 'Human Resource Information System',
+  icons: {
+    icon: '/qb-logo-2.ico',
+    shortcut: '/qb-logo-2.ico',
+    apple: '/qb-logo-2.ico',
+  },
 };
 
 export default function RootLayout({
