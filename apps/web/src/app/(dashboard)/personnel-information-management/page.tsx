@@ -42,6 +42,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuthStore } from "@/stores/auth-store"
 
 const moduleData = MODULES.PERSONNEL_INFORMATION
 
@@ -235,6 +236,7 @@ const statuses = [
 ]
 
 export default function PersonnelInformationPage() {
+  const { hasModuleAccess, hasPermission } = useAuthStore()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedDepartment, setSelectedDepartment] = useState("all")
   const [selectedDesignation, setSelectedDesignation] = useState("all")
@@ -467,6 +469,28 @@ export default function PersonnelInformationPage() {
       ...prev,
       attachments: prev.attachments.filter((_, i) => i !== index),
     }))
+  }
+
+  const canAccess =
+    hasModuleAccess(moduleData.slug) &&
+    hasPermission(`${moduleData.slug.replace(/-/g, "_")}:read`)
+
+  if (!canAccess) {
+    return (
+      <>
+        <SiteHeader />
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          <div className="px-4 lg:px-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Forbidden</CardTitle>
+                <CardDescription>You do not have access to {moduleData.name}.</CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </>
+    )
   }
 
   if (isCreating) {

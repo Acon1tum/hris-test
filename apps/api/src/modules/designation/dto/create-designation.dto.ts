@@ -6,6 +6,7 @@ export const CreateDesignationDto = z.object({
   description: z.string().optional().nullable(),
   level: z.number().int().min(1).default(1),
   isActive: z.boolean().default(true),
+  permissionIds: z.array(z.string()).optional().default([]),
 });
 
 export type CreateDesignationDto = z.infer<typeof CreateDesignationDto>;

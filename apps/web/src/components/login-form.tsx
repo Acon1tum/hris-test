@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -36,7 +37,16 @@ export function LoginForm({
             <div className="flex flex-col gap-7">
               {/* Header */}
               <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome back</h1>
+                <div className="flex items-center gap-3">
+                  <Image
+                    src="/qb-logo-2.png"
+                    alt="Quanby HRIS"
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 object-contain"
+                  />
+                  <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome back</h1>
+                </div>
                 <p className="text-base text-muted-foreground">
                   Login to your HRIS account
                 </p>
@@ -112,6 +122,15 @@ export function LoginForm({
             <div className="text-center text-white space-y-8 max-w-xs">
               {/* Branding */}
               <div className="space-y-3">
+                <div className="flex justify-center">
+                  <Image
+                    src="/qb-logo-2.png"
+                    alt="Quanby HRIS"
+                    width={80}
+                    height={80}
+                    className="h-20 w-20 object-contain"
+                  />
+                </div>
                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Quanby HRIS</h2>
                 <p className="text-base md:text-lg text-white/90 leading-relaxed">
                   Human Resource Information System

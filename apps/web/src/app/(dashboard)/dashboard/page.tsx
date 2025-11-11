@@ -1,3 +1,5 @@
+ "use client"
+
 import Link from "next/link"
 import * as Icons from "lucide-react"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
@@ -7,8 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from "@/components/ui/badge"
 import { MODULES } from "@hris/constants"
 import data from "@/app/dashboard/data.json"
+import { useAuthStore } from "@/stores/auth-store"
 
 export default function DashboardPage() {
+  const { hasModuleAccess, hasPermission } = useAuthStore()
+
   // Modules the user requested to show stats for on the dashboard
   const dashboardModules = [
     MODULES.E_PAYROLL,
@@ -50,6 +55,14 @@ export default function DashboardPage() {
           {dashboardModules
             .sort((a, b) => a.order - b.order)
             .map((mod) => {
+              // Gate each module card by module access and read permission for that module
+              const moduleSlug = mod.slug
+              const permissionResource = moduleSlug.replace(/-/g, "_")
+              const canSee =
+                hasModuleAccess(moduleSlug) &&
+                hasPermission(`${permissionResource}:read`)
+              if (!canSee) return null
+
               const Icon = (Icons as any)[mod.icon] || Icons.Box
               const stat = statsBySlug[mod.slug] || { value: 0, label: "Items" }
               return (

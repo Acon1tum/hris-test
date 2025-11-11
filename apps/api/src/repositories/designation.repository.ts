@@ -29,6 +29,39 @@ export class DesignationRepository extends BaseRepository<Designation> {
       orderBy: { level: 'desc' },
     });
   }
+
+  async findByIdWithPermissions(designationId: string) {
+    return this.prisma.designation.findUnique({
+      where: { id: designationId },
+      include: {
+        designationPermissions: {
+          include: {
+            permission: {
+              include: { module: true },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async deleteDesignationPermissions(designationId: string) {
+    return this.prisma.designationPermission.deleteMany({
+      where: { designationId },
+    });
+  }
+
+  async createDesignationPermissions(designationId: string, permissionIds: string[]) {
+    if (permissionIds.length === 0) {
+      return { count: 0 };
+    }
+    return this.prisma.designationPermission.createMany({
+      data: permissionIds.map((permissionId) => ({
+        designationId,
+        permissionId,
+      })),
+    });
+  }
 }
 
 

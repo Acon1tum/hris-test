@@ -1,6 +1,7 @@
 import { designationRepository } from '../../repositories';
 import { ApiError } from '../../utils/errors';
 import { CreateDesignationDto, UpdateDesignationDto } from './dto';
+import { prisma } from '@hris/database';
 
 export class DesignationService {
   async create(dto: CreateDesignationDto) {
@@ -14,13 +15,43 @@ export class DesignationService {
       throw new ApiError(400, 'Designation with this code already exists');
     }
 
-    return designationRepository.create(dto);
+    const { permissionIds, ...designationData } = dto;
+
+    // Create designation with permissions in a transaction
+    const designation = await prisma.$transaction(async (tx) => {
+      const newDesignation = await tx.designation.create({
+        data: designationData,
+      });
+
+      if (permissionIds && permissionIds.length > 0) {
+        await tx.designationPermission.createMany({
+          data: permissionIds.map((permissionId) => ({
+            designationId: newDesignation.id,
+            permissionId,
+          })),
+        });
+      }
+
+      return newDesignation;
+    });
+
+    return designationRepository.findByIdWithPermissions(designation.id);
   }
 
   async getAll() {
     return designationRepository.findMany(
       undefined,
-      undefined,
+      {
+        designationPermissions: {
+          include: {
+            permission: {
+              include: {
+                module: true,
+              },
+            },
+          },
+        },
+      },
       { level: 'desc' },
       undefined,
       undefined
@@ -28,7 +59,7 @@ export class DesignationService {
   }
 
   async getById(id: string) {
-    const designation = await designationRepository.findById(id);
+    const designation = await designationRepository.findByIdWithPermissions(id);
     if (!designation) {
       throw new ApiError(404, 'Designation not found');
     }
@@ -55,7 +86,38 @@ export class DesignationService {
       }
     }
 
-    return designationRepository.update(id, dto);
+    const { permissionIds, ...designationData } = dto;
+
+    // Update designation and permissions in a transaction
+    const updatedDesignation = await prisma.$transaction(async (tx) => {
+      // Update designation fields
+      const updated = await tx.designation.update({
+        where: { id },
+        data: designationData,
+      });
+
+      // Update permissions if provided
+      if (permissionIds !== undefined) {
+        // Remove existing permissions
+        await tx.designationPermission.deleteMany({
+          where: { designationId: id },
+        });
+
+        // Add new permissions
+        if (permissionIds.length > 0) {
+          await tx.designationPermission.createMany({
+            data: permissionIds.map((permissionId) => ({
+              designationId: id,
+              permissionId,
+            })),
+          });
+        }
+      }
+
+      return updated;
+    });
+
+    return designationRepository.findByIdWithPermissions(updatedDesignation.id);
   }
 
   async delete(id: string) {

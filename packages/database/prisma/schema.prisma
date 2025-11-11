@@ -49,6 +49,7 @@ model Permission {
   updatedAt   DateTime @updatedAt
 
   rolePermissions RolePermission[]
+  designationPermissions DesignationPermission[]
 
   @@unique([moduleId, resource, action])
   @@index([moduleId])
@@ -101,6 +102,20 @@ model RoleModule {
   @@index([roleId])
   @@index([moduleId])
   @@map("role_modules")
+}
+
+model DesignationPermission {
+  id           String     @id @default(cuid())
+  designationId String
+  permissionId String
+  designation  Designation @relation(fields: [designationId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([designationId, permissionId])
+  @@index([designationId])
+  @@index([permissionId])
+  @@map("designation_permissions")
 }
 
 // ============================================
@@ -197,6 +212,7 @@ model Designation {
   updatedAt   DateTime   @updatedAt
 
   employees Employee[]
+  designationPermissions DesignationPermission[]
 
   @@map("designations")
 }

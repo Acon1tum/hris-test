@@ -1,40 +1,41 @@
 "use client"
 
-import { Table } from "@tanstack/react-table"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
-import { Designation } from "./columns"
 
 interface DataTableToolbarProps {
-  table: Table<Designation>
   search: string
   onSearchChange: (value: string) => void
+  filteredCount: number
+  totalCount: number
+  displayStart: number
+  displayEnd: number
 }
 
 export function DataTableToolbar({
-  table,
   search,
   onSearchChange,
+  filteredCount,
+  totalCount,
+  displayStart,
+  displayEnd,
 }: DataTableToolbarProps) {
-  const filteredRows = table.getFilteredRowModel().rows
-
   return (
-    <div className="space-y-4">
-      <div className="relative flex-1 max-w-sm">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className="space-y-2">
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search..."
+          placeholder="Search designations or permissions..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-8"
+          className="h-11 pl-9 text-sm"
         />
       </div>
-
-      {filteredRows.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          Showing {1}-{filteredRows.length} of {filteredRows.length}
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground">
+        {filteredCount > 0
+          ? `Showing ${displayStart}-${displayEnd} of ${filteredCount} designation${filteredCount === 1 ? "" : "s"}`
+          : `Showing 0 of ${totalCount} designation${totalCount === 1 ? "" : "s"}`}
+      </p>
     </div>
   )
 }

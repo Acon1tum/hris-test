@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboardIcon,
@@ -187,8 +188,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <Link href="/dashboard">
-                <LayoutDashboardIcon className="h-5 w-5" />
+              <Link href="/dashboard" className="flex items-center gap-2">
+                <Image
+                  src="/qb-logo-2.png"
+                  alt="Quanby HRIS"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-contain"
+                />
                 <span className="text-base font-semibold">Quanby HRIS</span>
               </Link>
             </SidebarMenuButton>

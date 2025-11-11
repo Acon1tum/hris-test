@@ -9,6 +9,20 @@ export type DesignationFromAPI = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  designationPermissions?: Array<{
+    id: string;
+    permissionId: string;
+    permission: {
+      id: string;
+      name: string;
+      slug: string;
+      module: {
+        id: string;
+        name: string;
+        slug: string;
+      };
+    };
+  }>;
 };
 
 export interface CreateDesignationData {
@@ -17,6 +31,7 @@ export interface CreateDesignationData {
   description?: string | null;
   level: number;
   isActive?: boolean;
+  permissionIds?: string[];
 }
 
 export interface UpdateDesignationData {
@@ -25,6 +40,7 @@ export interface UpdateDesignationData {
   description?: string | null;
   level?: number;
   isActive?: boolean;
+  permissionIds?: string[];
 }
 
 class DesignationService {

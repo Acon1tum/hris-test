@@ -27,6 +27,7 @@ import {
 import { useState } from "react"
 import { DataTable } from "@/components/leave-requests/data-table"
 import { type LeaveRequest } from "@/components/leave-requests/columns"
+import { useAuthStore } from "@/stores/auth-store"
 
 const moduleData = MODULES.LEAVE_MANAGEMENT
 
@@ -101,6 +102,7 @@ const leaveTypes = [
 ]
 
 export default function LeaveManagementPage() {
+  const { hasModuleAccess, hasPermission } = useAuthStore()
   const [searchQuery, setSearchQuery] = useState("")
   const [departmentFilter, setDepartmentFilter] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
@@ -116,6 +118,28 @@ export default function LeaveManagementPage() {
     attachments: [] as File[],
   })
   const [dragActive, setDragActive] = useState(false)
+
+  const canAccess =
+    hasModuleAccess(moduleData.slug) &&
+    hasPermission(`${moduleData.slug.replace(/-/g, "_")}:read`)
+
+  if (!canAccess) {
+    return (
+      <>
+        <SiteHeader />
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          <div className="px-4 lg:px-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Forbidden</CardTitle>
+                <CardDescription>You do not have access to {moduleData.name}.</CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

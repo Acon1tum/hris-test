@@ -596,6 +596,57 @@ async function main() {
     },
   });
 
+  // Assign permissions to designations
+  console.log('🔐 Assigning permissions to designations...');
+  
+  // Manager gets all permissions (full access)
+  const allPermissionsForManager = await prisma.permission.findMany();
+  for (const permission of allPermissionsForManager) {
+    await prisma.designationPermission.upsert({
+      where: {
+        designationId_permissionId: {
+          designationId: managerDesignation.id,
+          permissionId: permission.id,
+        },
+      },
+      update: {},
+      create: {
+        designationId: managerDesignation.id,
+        permissionId: permission.id,
+      },
+    });
+  }
+
+  // Developer gets read and create permissions for most modules, but limited for system administration
+  const developerPermissions = allPermissionsForManager.filter((p) => {
+    // Full access to IT-related modules
+    if (['e_payroll', 'personnel_information_management', 'timekeeping_attendance'].includes(p.resource)) {
+      return ['read', 'create', 'update'].includes(p.action);
+    }
+    // Read-only for other modules except system administration
+    if (p.resource !== 'system_administration') {
+      return p.action === 'read' || p.action === 'create';
+    }
+    // No access to system administration
+    return false;
+  });
+
+  for (const permission of developerPermissions) {
+    await prisma.designationPermission.upsert({
+      where: {
+        designationId_permissionId: {
+          designationId: developerDesignation.id,
+          permissionId: permission.id,
+        },
+      },
+      update: {},
+      create: {
+        designationId: developerDesignation.id,
+        permissionId: permission.id,
+      },
+    });
+  }
+
   // Seed Leave Types (Philippine Government Standard)
   console.log('🏖️ Seeding leave types...');
   await prisma.leaveType.upsert({
